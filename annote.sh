@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="0.7"
+__VERSION__="0.8"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -1069,23 +1069,23 @@ function parse_options_test_purpose {
 # TODO: parse options before init conf
 parse_options_test_purpose 
 initialize_conf
-log_debug "using sys conf --> $config_file"
-log_debug "using user conf --> $u_conf_file"
-log_debug "using db --> $db_loc"
-
-log_debug "config_file: $config_file"
-log_debug "u_conf_file: $u_conf_file"
-log_debug "kv_conf_var[*]: ${kv_conf_var[*]}"
-log_debug "db_loc: $db_loc"
-log_debug "notes_loc: $notes_loc"
-log_debug "groups_loc: $groups_loc"
-log_debug "tags_loc: $tags_loc"
-log_debug "def_group: $def_group"
-log_debug "def_tag: $def_tag"
-log_debug "editor: $editor"
-log_debug "editor_gui: $editor_gui"
-log_debug "list_delim: $list_delim"
-log_debug "list_fmt: $list_fmt"
+#log_debug "using sys conf --> $config_file"
+#log_debug "using user conf --> $u_conf_file"
+#log_debug "using db --> $db_loc"
+#
+#log_debug "config_file: $config_file"
+#log_debug "u_conf_file: $u_conf_file"
+#log_debug "kv_conf_var[*]: ${kv_conf_var[*]}"
+#log_debug "db_loc: $db_loc"
+#log_debug "notes_loc: $notes_loc"
+#log_debug "groups_loc: $groups_loc"
+#log_debug "tags_loc: $tags_loc"
+#log_debug "def_group: $def_group"
+#log_debug "def_tag: $def_tag"
+#log_debug "editor: $editor"
+#log_debug "editor_gui: $editor_gui"
+#log_debug "list_delim: $list_delim"
+#log_debug "list_fmt: $list_fmt"
 #---------------------------------------------------------------
 list_notes
 #add_note
