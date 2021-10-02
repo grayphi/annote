@@ -351,8 +351,8 @@ function _conf_file {
     local cfile="$1"
     local line=""
     while IFS= read -r line; do
-        key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
-        value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
+        local key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
+        local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
         
         _set_key "$key" "$value"
     done < <(sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' \
@@ -370,19 +370,21 @@ function _load_user_conf {
 }
 
 function store_kv_pair {
-    kv="$1"
-    kv="$(echo "$kv" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    k="$(echo "$kv" | cut -d= -f1 | sed -e 's/\s\+$//')"
-    v="$(echo $kv | cut -d= -f2- | sed -e 's/^\s\+//')"
+    local kv="$1"
+    local kv="$(echo "$kv" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local k="$(echo "$kv" | cut -d= -f1 | sed -e 's/\s\+$//')"
+    local v="$(echo $kv | cut -d= -f2- | sed -e 's/^\s\+//')"
     if [ -n "$k" ]; then
         kv_conf_var["$k"]="$v"
     fi
 }
 
 function _set_keys_conf {
-    for i in "${!kv_conf_var[@]}"; do
-        _set_key "$i" "${kv_conf_var["$i"]}"
-    done
+    if [[ ${#kv_conf_var[@]} -ge 1 ]]; then
+        for i in "${!kv_conf_var[@]}"; do
+            _set_key "$i" "${kv_conf_var["$i"]}"
+        done
+    fi
 }
 
 function initialize_conf {
@@ -703,7 +705,7 @@ function make_header {
            nid="$(_list_prettify_fg "$i" "$nid" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<NID>/$nid/g" )"
        elif [[ "$fmt" =~ \<GROUP\> ]]; then
-           ngrp="$(_list_prettify_fg "$i" "$ngrp")"
+           ngrp="$(_list_prettify_fg "$i" "$ngrp" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
        elif [[ "$fmt" =~ \<TAGS\> ]]; then
            ntags="$(_list_prettify_fg "$i" "$ntags" "y")"
@@ -1038,7 +1040,7 @@ function get_subgroups {
 function delete_group {
     local fqgn="$1"
     if [ -n "$fqgn" ] && $(group_exists "$fqgn"); then
-        sgrps="$(get_subgroups "$fqgn")"
+        local sgrps="$(get_subgroups "$fqgn")"
         for cg in `echo "$sgrps,$fqgn" | tr ',' '\n'`; do
             local gl="$(get_group_loc "$cg")"
             local nf="$gl/notes.lnk"
@@ -1067,7 +1069,23 @@ function parse_options_test_purpose {
 # TODO: parse options before init conf
 parse_options_test_purpose 
 initialize_conf
+log_debug "using sys conf --> $config_file"
+log_debug "using user conf --> $u_conf_file"
+log_debug "using db --> $db_loc"
 
+log_debug "config_file: $config_file"
+log_debug "u_conf_file: $u_conf_file"
+log_debug "kv_conf_var[*]: ${kv_conf_var[*]}"
+log_debug "db_loc: $db_loc"
+log_debug "notes_loc: $notes_loc"
+log_debug "groups_loc: $groups_loc"
+log_debug "tags_loc: $tags_loc"
+log_debug "def_group: $def_group"
+log_debug "def_tag: $def_tag"
+log_debug "editor: $editor"
+log_debug "editor_gui: $editor_gui"
+log_debug "list_delim: $list_delim"
+log_debug "list_fmt: $list_fmt"
 #---------------------------------------------------------------
 list_notes
 #add_note
