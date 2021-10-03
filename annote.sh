@@ -689,7 +689,7 @@ function _list_prettify_bg {
 }
 
 function make_header {
-    local sno="S.NO."
+    local sno="S.No."
     local nid="ID"
     local ngrp="GROUP"
     local ntitle="TITLE"
@@ -729,7 +729,7 @@ function _list_note {
     
     for i in {1..5}; do
        if [[ "$fmt" =~ \<SNO\> ]]; then
-           sno="$(_list_prettify_fg "$i" "$sno")"
+           sno="$(_list_prettify_fg "$i" "$sno" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<SNO>/$sno/g" )"
        elif [[ "$fmt" =~ \<NID\> ]]; then
            nid="$(_list_prettify_fg "$i" "$nid")"
@@ -773,6 +773,101 @@ function list_notes {
             _list_notes | less -r
         fi
 }
+
+function build_header {
+    local fmt=""
+    local c=0
+
+    while [[ $# -gt 0 ]]; do
+        local arg="$1"
+        shift
+
+        arg="$(_list_prettify_fg "$c" "$arg" "y")"
+        fmt="$fmt$arg$list_delim"
+        c="$(( ++c ))"
+    done
+
+    echo -e "$(on_black "$fmt")"
+}
+
+function build_row {
+    local row_n="$1"
+    shift
+    local c=0;
+    local fmt=""
+
+    fmt="$(_list_prettify_fg "$c" "$row_n" "y")$list_delim"
+    
+    while [[ $# -gt 0 ]]; do
+        local t="$1"
+        shift
+        c="$(( ++c ))"
+        
+        t="$(_list_prettify_fg "$c" "$t")"
+        fmt="$fmt$t$list_delim"
+    done
+    _list_prettify_bg "$row_n" "$fmt"
+}
+
+function list_groups {
+    local groups="$1"
+    local gl="$db_loc/groups"
+    local sgl="$(echo "$gl" | sed 's/\//\\\//g')"
+
+    if [ -z "$groups" ]; then
+        groups="$(find $gl -type f -name 'notes.lnk' -print | sed \
+            -e "s/^$sgl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
+            tr '\n' ',' | sed 's/,$//')"
+    else
+        local rgs=""
+        for g in `echo "$groups" | tr ',' '\n'`; do
+            if $(group_exists "$g" ); then
+                rgs="$rgs,$g"
+            fi
+        done
+        groups="$(echo "$rgs" | sed 's/^,//')"
+    fi
+
+    local c=0;
+    build_header "S.No." "Group" "Total Notes"
+    for g in `echo "$groups" | tr ',' '\n'`; do
+        local gf="$(get_group_loc "$g")/notes.lnk"
+        local tn="$(cat "$gf" | wc -l)"
+        local msg=" Contain $tn Note(s)."
+        build_row $((++c)) "$g" "$msg"
+    done
+}
+
+function list_tags {
+    local tags="$1"
+    local tl="$db_loc/tags"
+    local stl="$(echo "$tl" | sed 's/\//\\\//g')"
+    
+    if [ -z "$tags" ]; then
+        tags="$(find $tl -type f -name 'notes.lnk' -print | sed \
+            -e "s/^$stl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
+            tr '\n' ',' | sed 's/,$//')"
+    else
+        local rts=""
+        for t in `echo "$tags" | tr ',' '\n'`; do
+            if $(tag_exists "$t" ); then
+                rts="$rts,$t"
+            fi
+        done
+        tags="$(echo "$rts" | sed 's/^,//')"
+    fi
+
+    local c=0;
+    build_header "S.No." "Tags" "Total Notes"
+    for t in `echo "$tags" | tr ',' '\n'`; do
+        local tf="$(get_tag_loc "$t")/notes.lnk"
+        local tn="$(cat "$tf" | wc -l)"
+        local msg=" Contain $tn Note(s)."
+        build_row $((++c)) "$t" "$msg"
+    done
+}
+
+
 
 function open_note {
     local nid="$1"
@@ -1087,5 +1182,6 @@ initialize_conf
 #log_debug "list_delim: $list_delim"
 #log_debug "list_fmt: $list_fmt"
 #---------------------------------------------------------------
+log_debug "=========================notes===================="
 list_notes
 #add_note
