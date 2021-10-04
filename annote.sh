@@ -47,6 +47,11 @@ editor_gui="gedit"
 list_delim="  "
 list_fmt="<SNO><DELIM><NID><DELIM><TITLE>"
 
+find_with_tags=""           # comma seperated tags
+find_with_group=""          # fqgn
+find_created_on=""          # range seperated with comma
+find_modified=""            # range seperated with comma
+
 # empty for editor, r -> record script, c -> content, f -> file
 flag_new_arg4=""   
 # empty for editor, r -> record script, c -> content, f -> file
@@ -64,6 +69,9 @@ flag_open_noedit=""         # 'y' --> view only pager, empty to edit
 flag_open_stdout=""         # 'y' --> output to stdout, empty for pager/editor
 flag_modify_tag_mode=""     # 'o' --> overwrite, 'd' -->delete, 'a' or empty append
 flag_encrypt_mode=""        # 'y' --> enable enc/dec, empty for no enc/dec
+flag_search_mode=""         # 't' --> title only, 'n' --> note only, blank to search on both
+flag_strict_find=""         # 'y' --> to matches strictly, blank for anywhere search
+flag_list_find=""           # 'y' --> to show list of notes not count, blank for count
 
 # functions 
 function __cont {
@@ -282,7 +290,11 @@ function help {
 #               --with-tags         filter the selected notes with provided tags, must be accrate tag
 #               --with-group        filter the selected notes with provided group, must be accurate group
 #               --created-on        filter selected notes with creation date
+#                    --before
+#                    --after
 #               --last-edit         filter selected notes with last modified date
+#                    --before
+#                    --after
 # option: --import                  import note
 # option: --export                  export note
 # option: --schedule                schedule of particular note uses cron jobs
@@ -591,6 +603,18 @@ function update_metadata {
     echo "$key: $value" >> $mfile
 }
 
+function get_metadata {
+    local nid="$1"
+    local key="$2"
+    local value=""
+    if $(note_exists "$nid"); then
+        local mfile="$notes_loc/$nid/$nid.metadata"
+        value="$(cat $mfile | grep "^$key: " | sed -e "s/^$key: //" )"
+    fi
+
+    echo "$value"
+}
+
 function add_note {
     local title="$1"
     local group="$2"
@@ -749,28 +773,38 @@ function _list_note {
 }
 
 function get_all_notes {
-    echo "$(ls $notes_loc | sort)"
+    echo "$(ls $notes_loc | sort | tr '\n' ',' | sed 's/,$//')"
 }
 
 function _list_notes {
+    local nids="$1"
     local c=0
     local l=""
 
     on_black "$(make_header)"
 
-    for n in `get_all_notes`; do
-        c="$(( ++c ))"
-        l="$(_list_note "$c" "$n")"
+    if [ -n "$nids" ]; then
+        for n in `echo "$nids" | tr ',' '\n'`; do
+            c="$(( ++c ))"
+            l="$(_list_note "$c" "$n")"
 
-        _list_prettify_bg "$c" "$l"
-    done
+            _list_prettify_bg "$c" "$l"
+        done
+    else
+        for n in `echo "$(get_all_notes)" | tr ',' '\n'`; do
+            c="$(( ++c ))"
+            l="$(_list_note "$c" "$n")"
+
+            _list_prettify_bg "$c" "$l"
+        done
+    fi
 }
 
 function list_notes {
         if [ "x$flag_no_pager" = "xy" ]; then
-            _list_notes
+            _list_notes "$1"
         else
-            _list_notes | less -r
+            _list_notes "$1" | less -r
         fi
 }
 
@@ -829,12 +863,32 @@ function list_groups {
     fi
 
     local c=0;
-    build_header "S.No." "Group" "Total Notes"
+    if [ "x$flag_list_find" = "xy" ]; then
+        build_header "S.No." "Group" "Note ID" "Note Title"
+    else
+        build_header "S.No." "Group" "Total Notes"
+    fi
+
     for g in `echo "$groups" | tr ',' '\n'`; do
         local gf="$(get_group_loc "$g")/notes.lnk"
-        local tn="$(cat "$gf" | wc -l)"
-        local msg=" Contain $tn Note(s)."
-        build_row $((++c)) "$g" "$msg"
+    
+        if [ "x$flag_list_find" = "xy" ]; then
+            if [ -f "$gf" ]; then
+                for n in `cat $gf`; do
+                    local msg="$(get_note_title "$n")"
+                    build_row $((++c)) "$g" "$n" "$msg"
+                done
+            fi
+        else
+            local tn=""
+            if [ -f "$gf" ]; then
+                tn="$(cat "$gf" | wc -l)"
+            else
+                tn="0"
+            fi
+            local msg=" Contain $tn Note(s)."
+            build_row $((++c)) "$g" "$msg"
+        fi
     done
 }
 
@@ -858,12 +912,32 @@ function list_tags {
     fi
 
     local c=0;
-    build_header "S.No." "Tags" "Total Notes"
+    if [ "x$flag_list_find" = "xy" ]; then
+        build_header "S.No." "Tags" "Note ID" "Note Title"
+    else
+        build_header "S.No." "Tags" "Total Notes"
+    fi
+
     for t in `echo "$tags" | tr ',' '\n'`; do
         local tf="$(get_tag_loc "$t")/notes.lnk"
-        local tn="$(cat "$tf" | wc -l)"
-        local msg=" Contain $tn Note(s)."
-        build_row $((++c)) "$t" "$msg"
+
+        if [ "x$flag_list_find" = "xy" ]; then
+            if [ -f "$tf" ]; then
+                for n in `cat $tf`; do
+                    local msg="$(get_note_title "$n")"
+                    build_row $((++c)) "$t" "$n" "$msg"
+                done
+            fi
+        else
+            local tn=""
+            if [ -f "$tf" ]; then
+                tn="$(cat "$tf" | wc -l)"
+            else
+                tn="0"
+            fi
+            local msg=" Contain $tn Note(s)."
+            build_row $((++c)) "$t" "$msg"
+        fi
     done
 }
 
@@ -1154,11 +1228,205 @@ function delete_group {
     fi
 }
 
+function find_tags {
+    local tpat="$1"
+    local tags=""
+    local stl="$(echo "$tags_loc" | sed 's/\//\\\//g')"
+    local apat="*"
+    
+    if [ "x$flag_strict_find" = "xy" ]; then
+        apat=""
+    fi
+    
+    tags="$(find $tags_loc  -mindepth 1 -maxdepth 1 -type d \
+        -name "$apat$tpat$apat" -print | sed -e "s/^$stl\///" -e 's/\/$//' | \
+        tr '\n' ',' | sed 's/,$//')"
+    if [ -n "$tags" ]; then
+        list_tags "$tags"
+    else
+        log_info "no tags found"
+    fi
+}
+
+function find_groups {
+    local gpat="$1"
+    local groups=""
+    local sgl="$(echo "$groups_loc" | sed 's/\//\\\//g')"
+    
+    if [ "x$flag_strict_find" != "xy" ]; then
+        gpat="*$(echo "$gpat" | sed 's/\./*.*/g')*"
+    fi
+   
+    gpat="$(echo "$gpat" | sed 's/\./\//g')"
+
+    groups="$(find $groups_loc  -mindepth 1 -type d -path "$groups_loc/$gpat" \
+        -print | sed -e "s/^$sgl\///" -e 's/\/$//' -e 's/\//./g' | \
+        tr '\n' ',' | sed 's/,$//')"
+
+    if [ -n "$groups" ]; then
+        list_groups "$groups"
+    else
+        log_info "no group found"
+    fi
+}
+
+function find_notes {
+    local stxt="$1"
+    local notes=""
+    local snl="$(echo "$notes_loc" | sed 's/\//\\\//g')"
+
+    stxt="$(echo "$stxt" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+
+    if [ -n "$stxt" ] && [ "x$flag_search_mode" = "xt" ]; then
+        notes="$(find "$notes_loc" -type f -iname "*.title" -exec grep \
+            -ilFe "$stxt" {} \; | sed -e "s/^$snl\///" | cut -d/ -f1 | \
+            sort -u | tr '\n' ',' | sed 's/,$//')"
+    elif [ -n "$stxt" ] && [ "x$flag_search_mode" = "xn" ]; then
+        notes="$(find "$notes_loc" -type f -iname "*.note" -exec grep \
+            -ilFe "$stxt" {} \; | sed -e "s/^$snl\///" | cut -d/ -f1 | \
+            sort -u | tr '\n' ',' | sed 's/,$//')"
+    elif [ -n "$stxt" ]; then
+        notes="$(find "$notes_loc" -type f \( -iname "*.note" -o \
+            -iname "*.title" \) -exec grep -ilFe "$stxt" {} \; | sed \
+            -e "s/^$snl\///" |cut -d/ -f1 | sort -u | tr '\n' ',' | \
+            sed 's/,$//')"
+    fi
+    
+    if [ -n "$find_with_group" ] && [ -n "$notes" ]; then
+        if [ "x$flag_strict_find" = "xy" ]; then
+            if $(group_exists "$find_with_group"); then
+                for n in `echo "$notes" | tr ',' '\n'`; do
+                    local g="$(get_note_group "$n")"
+                    if [ "x$g" != "x$find_with_group" ]; then
+                        notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                            -e 's/^,//' -e 's/,$//')"
+                    fi
+                done
+            else
+                notes=""
+            fi
+        else
+            for n in `echo "$notes" | tr ',' '\n'`; do
+                local g="$(get_note_group "$n")"
+                local p="$(echo "$find_with_group" | sed 's/\./*.*/g')"
+                if [[ "$(echo "$g" | grep -i "$p" | wc -l)" -eq 0 ]]; then
+                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        -e 's/^,//' -e 's/,$//')"
+                fi
+            done
+        fi
+    fi
+
+    if [ -n "$find_with_tags" ] && [ -n "$notes" ]; then
+        if [ "x$flag_strict_find" = "xy" ]; then
+            for t in `echo "$find_with_tags" | tr ',' '\n'`; do
+                t="$(echo "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+                if $(tag_exists "$t"); then
+                    for n in `echo "$notes" | tr ',' '\n'`; do
+                        local nt="$(get_note_tags "$n")"
+                        if [[ "$(echo ",$nt," | grep ",$t," | wc -l)" \
+                            -eq 0 ]]; then
+                            notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                                -e 's/^,//' -e 's/,$//')"
+                        fi
+                    done
+                else
+                    notes=""
+                    break
+                fi
+            done
+        else
+            for n in `echo "$notes" | tr ',' '\n'`; do
+                local nt="$(get_note_tags "$n")"
+                local f=""
+                
+                for t in `echo "$find_with_tags" | tr ',' 'n'`; do
+                    t="$(echo "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+                    if [[ "$(echo ",$nt," | grep -i ",*$t*," | wc -l)"  \
+                        -gt 0 ]]; then
+                        f="y"
+                        break
+                    fi
+                done
+
+                if [ -z "$f" ]; then
+                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        -e 's/^,//' -e 's/,$//')"
+                fi
+            done
+        fi
+    fi
+
+    if [ -n "$find_created_on" ] && [ -n "$notes" ]; then
+        local after="$(echo "$find_created_on" | cut -d, -f1)"
+        local before="$(echo "$find_created_on" | cut -d, -f2)"
+        
+        if [ -n "$after" ] && [ -n "$notes" ]; then
+            for n in `echo "$notes" | tr ',' '\n'`; do
+                local d="$(get_metadata "$n" 'Created On')"
+                d="$(date --date="$d" "+%s")"
+                
+                if [[ "$d" -lt "$after" ]]; then
+                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        -e 's/^,//' -e 's/,$//')"
+                fi
+            done
+        fi
+
+        if [ -n "$before" ] && [ -n "$notes" ]; then
+            for n in `echo "$notes" | tr ',' '\n'`; do
+                local d="$(get_metadata "$n" 'Created On')"
+                d="$(date --date="$d" "+%s")"
+                
+                if [[ "$d" -gt "$before" ]]; then
+                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        -e 's/^,//' -e 's/,$//')"
+                fi
+            done
+        fi
+    fi
+
+    if [ -n "$find_modified" ] && [ -n "$notes" ]; then
+        local after="$(echo "$find_modified" | cut -d, -f1)"
+        local before="$(echo "$find_modified" | cut -d, -f2)"
+        
+        if [ -n "$after" ] && [ -n "$notes" ]; then
+            for n in `echo "$notes" | tr ',' '\n'`; do
+                local d="$(get_metadata "$n" 'Modified On')"
+                d="$(date --date="$d" "+%s")"
+                
+                if [[ "$d" -lt "$after" ]]; then
+                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        -e 's/^,//' -e 's/,$//')"
+                fi
+            done
+        fi
+
+        if [ -n "$before" ] && [ -n "$notes" ]; then
+            for n in `echo "$notes" | tr ',' '\n'`; do
+                local d="$(get_metadata "$n" 'Modified On')"
+                d="$(date --date="$d" "+%s")"
+                
+                if [[ "$d" -gt "$before" ]]; then
+                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        -e 's/^,//' -e 's/,$//')"
+                fi
+            done
+        fi
+    fi
+
+    if [ -n "$notes" ]; then
+        list_notes "$notes"
+    fi
+}
+
 function parse_options_test_purpose {
     flag_enable_debug='y'
     flag_disable_warnings='y'
     flag_verbose='y'
     flag_no_pager='y'
+    flag_strict_find=""
+    flag_list_find="y"
 }
 
 # TODO: parse options before init conf
