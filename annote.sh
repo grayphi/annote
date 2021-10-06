@@ -1340,9 +1340,9 @@ function find_notes {
                 local nt="$(get_note_tags "$n")"
                 local f=""
                 
-                for t in `echo "$find_with_tags" | tr ',' 'n'`; do
+                for t in `echo "$find_with_tags" | tr ',' '\n'`; do
                     t="$(echo "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-                    if [[ "$(echo ",$nt," | grep -i ",*$t*," | wc -l)"  \
+                    if [[ "$(echo ",$nt," | grep -i ",.*$t.*," | wc -l)"  \
                         -gt 0 ]]; then
                         f="y"
                         break
@@ -1420,36 +1420,4 @@ function find_notes {
     fi
 }
 
-function parse_options_test_purpose {
-    flag_enable_debug='y'
-    flag_disable_warnings='y'
-    flag_verbose='y'
-    flag_no_pager='y'
-    flag_strict_find=""
-    flag_list_find="y"
-}
-
-# TODO: parse options before init conf
-parse_options_test_purpose 
 initialize_conf
-#log_debug "using sys conf --> $config_file"
-#log_debug "using user conf --> $u_conf_file"
-#log_debug "using db --> $db_loc"
-#
-#log_debug "config_file: $config_file"
-#log_debug "u_conf_file: $u_conf_file"
-#log_debug "kv_conf_var[*]: ${kv_conf_var[*]}"
-#log_debug "db_loc: $db_loc"
-#log_debug "notes_loc: $notes_loc"
-#log_debug "groups_loc: $groups_loc"
-#log_debug "tags_loc: $tags_loc"
-#log_debug "def_group: $def_group"
-#log_debug "def_tag: $def_tag"
-#log_debug "editor: $editor"
-#log_debug "editor_gui: $editor_gui"
-#log_debug "list_delim: $list_delim"
-#log_debug "list_fmt: $list_fmt"
-#---------------------------------------------------------------
-log_debug "=========================notes===================="
-list_notes
-#add_note
