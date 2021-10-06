@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="0.11"
+__VERSION__="0.12"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -72,6 +72,10 @@ flag_encrypt_mode=""        # 'y' --> enable enc/dec, empty for no enc/dec
 flag_search_mode=""         # 't' --> title only, 'n' --> note only, blank to search on both
 flag_strict_find=""         # 'y' --> to matches strictly, blank for anywhere search
 flag_list_find=""           # 'y' --> to show list of notes not count, blank for count
+
+ERR_CONFIG=1
+ERR_DATE=2
+
 
 # functions 
 function __cont {
@@ -1426,12 +1430,544 @@ function parse_date {
     local cdate=""
     cdate="$(date --date="$1" "+%s" 2>/dev/null)"
     if [ -z "$cdate" ]; then
-        log_error "invalid date: '$cdate'"
+        log_error "Invalid date: '$1'"
     fi
     echo "$cdate"
 }
 
+function _parse_args_config {
+    local n1="$#"
+    local eflag=0
+    local oflag=0
+
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg1="$1"
+        case "$sarg1" in 
+        "-i"|"--import")
+            oflag=1
+            local sarg2="$2"
+            shift 2
+            import_config "$sarg2"
+            exit 0
+            ;;
+        "-x"|"--export")
+            oflag=1
+            local sarg2="$2"
+            shift 2
+            export_config "$sarg2"
+            exit 0
+            ;;
+        "-u"|"--use")
+            oflag=1
+            local sarg2="$2"
+            shift 2
+            u_conf_file="$sarg2"
+            ;;
+        "-s"|"--set")
+            oflag=1
+            local sarg2="$2"
+            shift 2
+            store_kv_pair "$sarg2"
+            ;;
+        *)
+            if [[ $oflag -ne 1 ]]; then
+                log_error "No '--config' options found, check help for details."
+                exit $ERR_CONFIG
+            fi
+            eflag=1
+            ;;
+        esac
+    done
+
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
+function _parse_args_new {
+    local n1="$#"
+    local eflag=0
+    local title=""
+    local group=""
+    local tags=""
+    local note=""
+
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg1="$1"
+        case "$sarg1" in 
+            "-t"|"--title")
+                title="$2"
+                shift 2
+                ;;
+            "-g"|"--group")
+                group="$2"
+                shift 2
+                ;;
+            "-T"|"--tags")
+                tags="$2"
+                shift 2
+                ;;
+            "-r"|"--record")
+                flag_new_arg4="r"
+                shift
+                ;;
+            "-c"|"--content")
+                flag_new_arg4="c"
+                note="$2"
+                shift 2
+                ;;
+            "-f"|"--file")
+                flag_new_arg4="f"
+                note="$2"
+                shift 2
+                ;;
+            *)
+                eflag=1
+                ;;
+        esac
+    done
+    # FIXME: action needs to be added 
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
+function _parse_args_list {
+    local n1="$#"
+    local eflag=0
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg1="$1"
+        case "$sarg1" in
+            "--stdout")
+                flag_no_pager="y"
+                shift
+                ;;
+            "--no-pretty")
+                flag_no_pretty="y"
+                shift
+                ;;
+            "--use-delim")
+                list_delim="$2"
+                shift 2
+                ;;
+            "--format")
+                list_fmt="$2"
+                shift 2
+                ;;
+            *)
+                eflag=1
+                ;;
+        esac
+    done
+    # FIXME: action needs to be added 
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
+function _parse_args_delete {
+    local n1="$#"
+    local eflag=0
+    local nid=""
+    local group=""
+    local tag=""
+
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg1="$1"
+        case "$sarg1" in 
+            "--note")
+                nid="$2"
+                shift 2
+                ;;
+            "--group")
+                group="$2"
+                shift 2
+                ;;
+            "--group-nosafe")
+                flag_nosafe_grpdel="y"
+                group="$2"
+                shift 2
+                ;;
+            "--tag")
+                tag="$2"
+                shift 2
+                ;;
+            *)
+                eflag=1
+                ;;
+        esac
+    done
+    # FIXME: action needs to be added 
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
+function _parse_args_modify {
+    local n1="$#"
+    local eflag=0
+    local nflag=0
+    local nid=""
+    local title=""
+    local group=""
+    local tags=""
+    local note=""
+
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg="$1"
+        case "$sarg" in 
+            "-t"|"--title")
+                title="$2"
+                shift 2
+                ;;
+            "-g"|"--group")
+                group="$2"
+                shift 2
+                ;;
+            "-T"|"--tags")
+                shift
+                local tflag=0
+                local flag2=0
+                while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
+                    local sarg1="$1"
+                    case "$sarg1" in
+                        "--append")
+                            shift
+                            flag_modify_tag_mode="a"
+                            ;;
+                        "--overwrite")
+                            shift
+                            flag_modify_tag_mode="o"
+                            ;;
+                        "--delete")
+                            shift
+                            flag_modify_tag_mode="d"
+                            ;;
+                        *)
+                            if [[ $tflag -eq 0 ]]; then
+                                tflag=1
+                                tags="$sarg1"
+                                shift
+                            else
+                                flag2=1
+                            fi
+                            ;;
+                    esac
+                done
+                ;;
+            "-r"|"--record")
+                flag_modify_arg2="r"
+                shift
+                ;;
+            "-c"|"--content")
+                flag_modify_arg2="c"
+                note="$2"
+                shift 2
+                ;;
+            "-f"|"--file")
+                flag_modify_arg2="f"
+                note="$2"
+                shift 2
+                ;;
+            "-O"|"--no-append"|"--overwrite")
+                flag_append_mode=""
+                shift
+                ;;
+            *)
+                if [[ $nflag -eq 0 ]]; then
+                    nid="$sarg"
+                    shift
+                    nflag=1
+                else
+                    eflag=1
+                fi
+                ;;
+        esac
+    done
+    # FIXME modify action
+
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
+function _parse_args_open {
+    local n1="$#"
+    local eflag=0
+    local nid=""
+    local nflag=0
+
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg1="$1"
+        case "$sarg1" in 
+            "--stdout")
+                flag_open_stdout="y"
+                shift
+                ;;
+            "--no-edit")
+                flag_open_noedit="y"
+                shift
+                ;;
+            *)
+                if [[ $nflag -eq 0 ]]; then
+                    nid="$sarg1"
+                    nflag=1
+                    shift
+                else
+                    eflag=1
+                fi
+                ;;
+        esac
+    done
+    # FIXME: action needs to be added 
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
+function _parse_args_find {
+    local n1="$#"
+    local eflag=0
+    while [[ $# -ne 0 && $eflag -eq 0 ]]; do
+        local sarg="$1"
+        case "$sarg" in 
+            "--tags")
+                shift
+                local tflag=0
+                local flag=0
+                local tag_pat=""
+
+                while [[ $# -ne 0 && $flag -eq 0 ]]; do
+                    local sarg1="$1"
+                    case "$sarg1" in
+                        "--count")
+                            flag_list_find=""
+                            shift
+                            ;;
+                        "--list")
+                            flag_list_find="y"
+                            shift
+                            ;;
+                        "--strict")
+                            flag_strict_find="y"
+                            shift
+                            ;;
+                        *)
+                            if [[ $tflag -eq 0 ]]; then
+                                tflag=1
+                                tag_pat="$sarg1"
+                                shift
+                            else
+                                flag=1
+                            fi
+                            ;;
+                    esac
+                done
+                # FIXME find tag action
+                ;;
+            "--group")
+                shift
+                local gflag=0
+                local flag=0
+                local group_pat=""
+
+                while [[ $# -ne 0 && $flag -eq 0 ]]; do
+                    local sarg1="$1"
+                    case "$sarg1" in
+                        "--count")
+                            flag_list_find=""
+                            shift
+                            ;;
+                        "--list")
+                            flag_list_find="y"
+                            shift
+                            ;;
+                        "--strict")
+                            flag_strict_find="y"
+                            shift
+                            ;;
+                        *)
+                            if [[ $gflag -eq 0 ]]; then
+                                gflag=1
+                                group_pat="$sarg1"
+                                shift
+                            else
+                                flag=1
+                            fi
+                            ;;
+                    esac
+                done
+                # FIXME find group action
+                ;;
+            "--note")
+                shift
+                local nflag=0
+                local flag=0
+                local note_str=""
+
+                while [[ $# -ne 0 && $flag -eq 0 ]]; do
+                    local sarg1="$1"
+                    case "$sarg1" in
+                        "--title-only")
+                            flag_search_mode="t"
+                            shift
+                            ;;
+                        "--note-only")
+                            flag_search_mode="n"
+                            shift
+                            ;;
+                        "--with-tags")
+                            find_with_tags="$2"
+                            shift 2
+                            ;;
+                        "--with-group")
+                            find_with_group="$2"
+                            shift 2
+                            ;;
+                        "--strict")
+                            flag_strict_find="y"
+                            shift
+                            ;;
+                        "--created-on")
+                            shift
+                            local flag2=0
+                            local bdate=""
+                            local adate=""
+                            local cdate=""
+                            local dflag=0
+    
+                            while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
+                                local sarg2="$1"
+                                case "$sarg2" in
+                                    "--before")
+                                        if [[ $dflag -eq 1 ]]; then
+                                            log_error '"--before" option can not be used with already supplied date, check help.'
+                                            exit $ERR_DATE 
+                                        fi
+                                        bdate="$2"
+                                        shift 2
+
+                                        bdate="$(parse_date "$bdate")"
+                                        if [ -z "$bdate" ]; then
+                                            log_error "Enter valid '--before' date, check help for details."
+                                            exit $ERR_DATE
+                                        fi
+                                        ;;
+                                    "--after")
+                                        if [[ $dflag -eq 1 ]]; then
+                                            log_error '"--after" option can not be used with already supplied date, check help.'
+                                            exit  $ERR_DATE
+                                        fi
+                                        adate="$2"
+                                        shift 2
+                                        
+                                        adate="$(parse_date "$adate")"
+                                        if [ -z "$adate" ]; then
+                                            log_error "Enter valid '--after' date, check help for details."
+                                            exit $ERR_DATE
+                                        fi
+                                        ;;
+                                    *)
+                                        if [ -z "$adate"  && -z "$bdate" ] && [[ $dflag -eq 0 ]]; then
+                                            shift
+                                            dflag=1
+                                            cdate="$sarg2"
+                                            cdate="$(parse_date "$cdate")"
+                                            if [ -z "$cdate" ]; then
+                                                log_error "Enter valid '--created-on' date, check help for details."
+                                                exit $ERR_DATE
+                                            else
+                                                bdate="$cdate"
+                                                adate="$cdate"
+                                            fi
+                                        else
+                                            flag2=1
+                                        fi
+                                        ;;
+                                esac
+                            done
+
+                            find_created_on="$adate,$bdate"
+                            ;;
+                        "--last-edit")
+                            shift
+                            local flag2=0
+                            local bdate=""
+                            local adate=""
+                            local cdate=""
+                            local dflag=0
+    
+                            while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
+                                local sarg2="$1"
+                                case "$sarg2" in
+                                    "--before")
+                                        if [[ $dflag -eq 1 ]]; then
+                                            log_error '"--before" option can not be used with already supplied date, check help.'
+                                            exit $ERR_DATE 
+                                        fi
+                                        bdate="$2"
+                                        shift 2
+
+                                        bdate="$(parse_date "$bdate")"
+                                        if [ -z "$bdate" ]; then
+                                            log_error "Enter valid '--before' date, check help for details."
+                                            exit $ERR_DATE
+                                        fi
+                                        ;;
+                                    "--after")
+                                        if [[ $dflag -eq 1 ]]; then
+                                            log_error '"--after" option can not be used with already supplied date, check help.'
+                                            exit  $ERR_DATE
+                                        fi
+                                        adate="$2"
+                                        shift 2
+                                        
+                                        adate="$(parse_date "$adate")"
+                                        if [ -z "$adate" ]; then
+                                            log_error "Enter valid '--after' date, check help for details."
+                                            exit $ERR_DATE
+                                        fi
+                                        ;;
+                                    *)
+                                        if [ -z "$adate"  && -z "$bdate" ] && [[ $dflag -eq 0 ]]; then
+                                            shift
+                                            dflag=1
+                                            cdate="$sarg2"
+                                            cdate="$(parse_date "$cdate")"
+                                            if [ -z "$cdate" ]; then
+                                                log_error "Enter valid '--created-on' date, check help for details."
+                                                exit $ERR_DATE
+                                            else
+                                                bdate="$cdate"
+                                                adate="$cdate"
+                                            fi
+                                        else
+                                            flag2=1
+                                        fi
+                                        ;;
+                                esac
+                            done
+
+                            find_modified="$adate,$bdate"
+                            ;;
+                        *)
+                            if [[ $nflag -eq 0 ]]; then
+                                nflag=1
+                                note_str="$sarg1"
+                                shift
+                            else
+                                flag=1
+                            fi
+                            ;;
+                    esac
+                done
+                # FIXME find note action
+                ;;
+            *)
+                eflag=1
+                ;;
+        esac
+    done
+    local n2="$#"
+    echo "$((n1-n2))"
+}
+
 function parse_args {
+    local n=0
     while [ $# -gt 0 ]; do
         local arg="$1"
         shift
@@ -1469,521 +2005,32 @@ function parse_args {
                 flag_no_pager="y"
                 ;;
             "-C"|"--config")
-                local eflag=0
-                local oflag=0
-
-                while [[ $eflag -eq 0 && $# -ne 0 ]]; do
-                    local sarg1="$1"
-                    case "$sarg1" in 
-                        "-i"|"--import")
-                            oflag=1
-                            local sarg2="$2"
-                            shift 2
-                            import_config "$sarg2"
-                            exit 0
-                            ;;
-                        "-x"|"--export")
-                            oflag=1
-                            local sarg2="$2"
-                            shift 2
-                            export_config "$sarg2"
-                            exit 0
-                            ;;
-                        "-u"|"--use")
-                            oflag=1
-                            local sarg2="$2"
-                            shift 2
-                            u_conf_file="$sarg2"
-                            ;;
-                        "-s"|"--set")
-                            oflag=1
-                            local sarg2="$2"
-                            shift 2
-                            store_kv_pair "$sarg2"
-                            ;;
-                        *)
-                            if [[ $oflag -ne 1 ]]; then
-                                log_error "No '--config' options found, check help for details."
-                                exit 0
-                            fi
-                            eflag=1
-                            ;;
-                    esac
-                done
+                n="$(_parse_args_config "$@")"
+                shift $n
                 ;;
             "-n"|"--new")
-                local eflag=0
-                local title=""
-                local group=""
-                local tags=""
-                local note=""
-
-                while [[ $# -ne 0 && $eflag -eq 0 ]]; do
-                    local sarg1="$1"
-                    case "$sarg1" in 
-                        "-t"|"--title")
-                            title="$2"
-                            shift 2
-                            ;;
-                        "-g"|"--group")
-                            group="$2"
-                            shift 2
-                            ;;
-                        "-T"|"--tags")
-                            tags="$2"
-                            shift 2
-                            ;;
-                        "-r"|"--record")
-                            flag_new_arg4="r"
-                            shift
-                            ;;
-                        "-c"|"--content")
-                            flag_new_arg4="c"
-                            note="$2"
-                            shift 2
-                            ;;
-                        "-f"|"--file")
-                            flag_new_arg4="f"
-                            note="$2"
-                            shift 2
-                            ;;
-                        "--gui")
-                            flag_gui_editor="y"
-                            shift
-                            ;;
-                        *)
-                            eflag=1
-                            ;;
-                    esac
-                done
-                # FIXME: action needs to be added 
+                n="$(_parse_args_new "$@")"
+                shift $n
                 ;;
             "-l"|"--list")
-                local eflag=0
-                while [[ $# -ne 0 && $eflag -eq 0 ]]; do
-                        local sarg1="$1"
-                        case "$sarg1" in
-                            "--stdout")
-                                flag_no_pager="y"
-                                shift
-                                ;;
-                            "--no-pretty")
-                                flag_no_pretty="y"
-                                shift
-                                ;;
-                            "--use-delim")
-                                list_delim="$2"
-                                shift 2
-                                ;;
-                            "--format")
-                                list_fmt="$2"
-                                shift 2
-                                ;;
-                            *)
-                                eflag=1
-                                ;;
-                        esac
-                done
-                # FIXME: action needs to be added 
+                n="$(_parse_args_list "$@")"
+                shift $n
                 ;;
             "-e"|"--erase"|"--delete")
-                local eflag=0
-                local nid=""
-                local group=""
-                local tag=""
-
-                while [[ $# -ne 0 && $eflag -eq 0 ]]; do
-                    local sarg1="$1"
-                    case "$sarg1" in 
-                        "--note")
-                            nid="$2"
-                            shift 2
-                            ;;
-                        "--group")
-                            group="$2"
-                            shift 2
-                            ;;
-                        "--group-nosafe")
-                            flag_nosafe_grpdel="y"
-                            group="$2"
-                            shift 2
-                            ;;
-                        "--tag")
-                            tag="$2"
-                            shift 2
-                            ;;
-                        *)
-                            eflag=1
-                            ;;
-                    esac
-                done
-                # FIXME: action needs to be added 
+                n="$(_parse_args_delete "$@")"
+                shift $n
                 ;;
             "-o"|"--open")
-                local eflag=0
-                local nid=""
-                local nflag=0
-
-                while [[ $# -ne 0 && $eflag -eq 0 ]]; do
-                    local sarg1="$1"
-                    case "$sarg1" in 
-                        "--stdout")
-                            flag_open_stdout="y"
-                            shift
-                            ;;
-                        "--no-edit")
-                            flag_open_noedit="y"
-                            shift
-                            ;;
-                        *)
-                            if [[ $nflag -eq 0 ]]; then
-                                nid="$sarg1"
-                                nflag=1
-                                shift
-                            else
-                                eflag=1
-                            fi
-                            ;;
-                    esac
-                done
-                # FIXME: action needs to be added 
+                n="$(_parse_args_open "$@")"
+                shift $n
                 ;;
             "-F"|"--find"|"--search")
-                local eflag=0
-                while [[ $# -ne 0 && $eflag -eq 0 ]]; do
-                    local sarg="$1"
-                    case "$sarg" in 
-                        "--tags")
-                                shift
-                                local tflag=0
-                                local flag=0
-                                local tag_pat=""
-
-                                while [[ $# -ne 0 && $flag -eq 0 ]]; do
-                                    local sarg1="$1"
-                                    case "$sarg1" in
-                                        "--count")
-                                            flag_list_find=""
-                                            shift
-                                            ;;
-                                        "--list")
-                                            flag_list_find="y"
-                                            shift
-                                            ;;
-                                        "--strict")
-                                            flag_strict_find="y"
-                                            shift
-                                            ;;
-                                        *)
-                                            if [[ $tflag -eq 0 ]]; then
-                                                tflag=1
-                                                tag_pat="$sarg1"
-                                                shift
-                                            else
-                                                flag=1
-                                            fi
-                                            ;;
-                                    esac
-                                done
-                                # FIXME find tag action
-                            ;;
-                        "--group")
-                                shift
-                                local gflag=0
-                                local flag=0
-                                local group_pat=""
-
-                                while [[ $# -ne 0 && $flag -eq 0 ]]; do
-                                    local sarg1="$1"
-                                    case "$sarg1" in
-                                        "--count")
-                                            flag_list_find=""
-                                            shift
-                                            ;;
-                                        "--list")
-                                            flag_list_find="y"
-                                            shift
-                                            ;;
-                                        "--strict")
-                                            flag_strict_find="y"
-                                            shift
-                                            ;;
-                                        *)
-                                            if [[ $gflag -eq 0 ]]; then
-                                                gflag=1
-                                                group_pat="$sarg1"
-                                                shift
-                                            else
-                                                flag=1
-                                            fi
-                                            ;;
-                                    esac
-                                done
-                                # FIXME find group action
-                            ;;
-                        "--note")
-                            shift
-                            local nflag=0
-                            local flag=0
-                            local note_str=""
-
-                            while [[ $# -ne 0 && $flag -eq 0 ]]; do
-                                local sarg1="$1"
-                                case "$sarg1" in
-                                    "--title-only")
-                                        flag_search_mode="t"
-                                        shift
-                                        ;;
-                                    "--note-only")
-                                        flag_search_mode="n"
-                                        shift
-                                        ;;
-                                    "--with-tags")
-                                        find_with_tags="$2"
-                                        shift 2
-                                        ;;
-                                    "--with-group")
-                                        find_with_group="$2"
-                                        shift 2
-                                        ;;
-                                    "--created-on")
-                                        shift
-                                        local flag2=0
-                                        local bdate=""
-                                        local adate=""
-                                        local cdate=""
-                                        local dflag=0
-
-                                        while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
-                                            local sarg2="$1"
-                                            case "$sarg2" in
-                                                "--before")
-                                                    if [[ $dflag -eq 1 ]]; then
-                                                        log_error '"--before" option can not be used with already supplied date, check help.'
-                                                        exit 0
-                                                    fi
-                                                    bdate="$2"
-                                                    shift 2
-                                                    ;;
-                                                "--after")
-                                                    if [[ $dflag -eq 1 ]]; then
-                                                        log_error '"--after" option can not be used with already supplied date, check help.'
-                                                        exit  0
-                                                    fi
-                                                    adate="$2"
-                                                    shift 2
-                                                    ;;
-                                                *)
-                                                    if [ -z "$adate"  && -z "$bdate" ] && [[ $dflag -eq 0 ]]; then
-                                                        dflag=1
-                                                        cdate="$sarg2"
-                                                        shift
-                                                    else
-                                                        flag2=1
-                                                    fi
-                                                    ;;
-                                            esac
-                                        done
-
-                                        if [[ $dflag -eq 1 ]]; then
-                                            cdate="$(parse_date "$cdate")"
-                                            if [ -z "$cdate" ]; then
-                                                log_error "Enter valid '--created-on' date, check help for details."
-                                                exit 0
-                                            else
-                                                bdate="$cdate"
-                                                adate="$cdate"
-                                            fi
-                                        else
-                                            if [ -n "$bdate" ]; then
-                                                bdate="$(parse_date "$bdate")"
-                                                if [ -z "$bdate" ]; then
-                                                    log_error "Enter valid '--before' date, check help for details."
-                                                    exit 0
-                                                fi
-                                            fi
-                                            if [ -n "$adate" ]; then
-                                                adate="$(parse_date "$adate")"
-                                                if [ -z "$adate" ]; then
-                                                    log_error "Enter valid '--after' date, check help for details."
-                                                    exit 0
-                                                fi
-                                            fi
-                                        fi
-
-                                        find_created_on="$adate,$bdate"
-                                        ;;
-                                    "--last-edit")
-                                        shift
-                                        local flag2=0
-                                        local bdate=""
-                                        local adate=""
-                                        local cdate=""
-                                        local dflag=0
-
-                                        while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
-                                            local sarg2="$1"
-                                            case "$sarg2" in
-                                                "--before")
-                                                    if [[ $dflag -eq 1 ]]; then
-                                                        log_error '"--before" option can not be used with already supplied date, check help.'
-                                                        exit 0
-                                                    fi
-                                                    bdate="$2"
-                                                    shift 2
-                                                    ;;
-                                                "--after")
-                                                    if [[ $dflag -eq 1 ]]; then
-                                                        log_error '"--after" option can not be used with already supplied date, check help.'
-                                                        exit  0
-                                                    fi
-                                                    adate="$2"
-                                                    shift 2
-                                                    ;;
-                                                *)
-                                                    if [ -z "$adate"  && -z "$bdate" ] && [[ $dflag -eq 0 ]]; then
-                                                        dflag=1
-                                                        cdate="$sarg2"
-                                                        shift
-                                                    else
-                                                        flag2=1
-                                                    fi
-                                                    ;;
-                                            esac
-                                        done
-
-                                        if [[ $dflag -eq 1 ]]; then
-                                            cdate="$(parse_date "$cdate")"
-                                            if [ -z "$cdate" ]; then
-                                                log_error "Enter valid '--created-on' date, check help for details."
-                                                exit 0
-                                            else
-                                                bdate="$cdate"
-                                                adate="$cdate"
-                                            fi
-                                        else
-                                            if [ -n "$bdate" ]; then
-                                                bdate="$(parse_date "$bdate")"
-                                                if [ -z "$bdate" ]; then
-                                                    log_error "Enter valid '--before' date, check help for details."
-                                                    exit 0
-                                                fi
-                                            fi
-                                            if [ -n "$adate" ]; then
-                                                adate="$(parse_date "$adate")"
-                                                if [ -z "$adate" ]; then
-                                                    log_error "Enter valid '--after' date, check help for details."
-                                                    exit 0
-                                                fi
-                                            fi
-                                        fi
-
-                                        find_modified="$adate,$bdate"
-                                        ;;
-                                    "--strict")
-                                        flag_strict_find="y"
-                                        shift
-                                        ;;
-                                    *)
-                                        if [[ $nflag -eq 0 ]]; then
-                                            nflag=1
-                                            note_str="$sarg1"
-                                            shift
-                                        else
-                                            flag=1
-                                        fi
-                                        ;;
-                                esac
-                            done
-                            # FIXME find note action
-                            ;;
-                        *)
-                            eflag=1
-                            ;;
-                    esac
-                done
+                n="$(_parse_args_find "$@")"
+                shift $n
                 ;;
             "-m"|"--modify"|"--edit")
-                local eflag=0
-                local nid=""
-                local nflag=0
-                local title=""
-                local group=""
-                local tags=""
-                local note=""
-
-                while [[ $# -ne 0 && $eflag -eq 0 ]]; do
-                    local sarg="$1"
-                    case "$sarg" in 
-                        "--title")
-                            title="$2"
-                            shift 2
-                            ;;
-                        "--group")
-                            group="$2"
-                            shift 2
-                            ;;
-                        "-T"|"--tags")
-                            shift
-                            local tflag=0
-                            local flag2=0
-                            while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
-                                local sarg1="$1"
-                                case "$sarg1" in
-                                    "--append")
-                                        shift
-                                        flag_modify_tag_mode="a"
-                                        ;;
-                                    "--overwrite")
-                                        shift
-                                        flag_modify_tag_mode="o"
-                                        ;;
-                                    "--delete")
-                                        shift
-                                        flag_modify_tag_mode="d"
-                                        ;;
-                                    *)
-                                        if [[ $tflag -eq 0 ]]; then
-                                            tflag=1
-                                            tags="$sarg1"
-                                            shift
-                                        else
-                                            flag2=1
-                                        fi
-                                        ;;
-                                esac
-                            done
-                            ;;
-                        "-r"|"--record")
-                            flag_modify_arg2="r"
-                            shift
-                            ;;
-                        "-c"|"--content")
-                            flag_modify_arg2="c"
-                            note="$2"
-                            shift 2
-                            ;;
-                        "-f"|"--file")
-                            flag_modify_arg2="f"
-                            note="$2"
-                            shift 2
-                            ;;
-                        "-O"|"--no-append"|"--overwrite")
-                            flag_append_mode=""
-                            shift
-                            ;;
-                        *)
-                            if [[ $nflag -eq 0 ]]; then
-                                nid="$sarg"
-                                shift
-                                nflag=1
-                            else
-                                eflag=1
-                            fi
-                            ;;
-                    esac
-                done
-                # FIXME modify action
+                n="$(_parse_args_modify "$@")"
+                shift $n
                 ;;
             *)
                 log_error "Unknow option '$arg', check help for details."
@@ -1995,3 +2042,5 @@ function parse_args {
 
 parse_args "$@"
 initialize_conf
+
+
