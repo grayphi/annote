@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="0.12"
+__VERSION__="0.13"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -238,77 +238,127 @@ function __banner__ {
 
 #help
 function help {
-     __banner__
-    log_plain "annotate Terminal based notes managing utility for GNU/Linux OS."
-# notes from wherever, whenever, orcestrate in any way, and it does the thing
-# notes as supposed to do so,whenever, wherever, however it doen;t make any difference.
+    local idnt_l1="$1"
+    local idnt_sc1="$idnt_l1   "
+    local idnt_sc2="$idnt_sc1   "
+    local idnt_sc3="$idnt_sc2   "
+    local fsep_1="\t"
+    local fsep_2="$fsep_1\t"
+    local fsep_3="$fsep_2\t"
+    local fsep_4="$fsep_3\t"
 
-# option: --new, -n                  add new note
-#           -t, --title                 title of note
-#           -g, --group                 group of note
-#           -T, --tag                   tags of note
-#           -r, --record                record console activity as a note, calls the 'script' cmd
-#           -c, --content               body of note, good for single line usage
-#           -f, --file                  record file as note, '-' for stdin to record from stdin
-#           --gui                       use gui editor
-# option: --debug, -d               debug mode
-# option: -v, --verbose
-# option: -V, --version
-# option: -h, --help
-# option: -D, --silent              silent mode, no ask, use defaults options whenever available
-# option: -q, --quite               disable warnings
-# option: -S, --shell               open up shell for commands to enter
-# option: -C, --config              manage config
-#           -i, --import            import config from file, and exit
-#           -x, --export            export current config to file, and exit
-#           -s, --set               override config defined key to provided key=value, can be used multiple time for multiple keys
-#           -u, --use               use file as current instance's config file
-# option: -l, --list                list out all notes from db in format: <SNO> <NID> <TITLE>
-#           --stdout                don't use pager just dump everything to stdout
-#           --no-pretty             do't use prettify when dumping list
-#           --use-delim             use provided delimiter
-#           --format                create custom format with: <SNO> <NID> <TITLE> <TAGS> <GROUP>
-# option: -e --delete, --erase     
-#           --note                  delete note with provided <nid>
-#           --group                 delete group with provided <fqgn>, changes notes to 'default' group (safe delete)
-#           --group-nosafe          delete group with provided <fqgn>, also deltes notes belong to this group
-#           --tag                   delete tag with provided <tag name>, change note to 'default' tag, if this was single tag to that note
-# option: -m, --edit, --modify      edit note with provided <nid>, default is to open note with editor,if -r,-c,-f not pro provided
-#           -t, --title                 modify title of note
-#           -g, --group                 modify group of note
-#           -T, --tag                   modify tags of note, append, overwrite,delete
-#           -r, --record                record console activity as a note, calls the 'script' cmd
-#           -c, --content               body of note, good for single line usage
-#           -f, --file                  record file as note, '-' for stdin to record from stdin
-# option: -o, --open                open note with provided <nid> in editor
-#           --stdout                just dump note to stdout
-#           --no-edit               use pager instead of editor to open
-# option: -F, --find, --search      search provied <text> in notes, tags, group and list
-#           --tags                  search only tags
-#               --count             also display total notes belong to the found tags, mutual exculsive to --list
-#               --list              also display list of notes belong to the found tags, mutual exclusive to --count
-#           --group                 search only groups
-#               --count             also display total notes belong to the found groups, mutual exclusive to --list
-#               --list              also display list of notes belong to the found groups, mutual exclusive to --count
-#           --note                  search only notes
-#               --with-tags         filter the selected notes with provided tags, must be accrate tag
-#               --with-group        filter the selected notes with provided group, must be accurate group
-#               --created-on        filter selected notes with creation date
-#                    --before
-#                    --after
-#               --last-edit         filter selected notes with last modified date
-#                    --before
-#                    --after
-#               --title-only        searched only on note title
-#               --note-only         searches only on note body, default if both
-# option: --import                  import note
-# option: --export                  export note
-# option: --schedule                schedule of particular note uses cron jobs
-# option: -X, --encrypt, --decrypt  use encryption on create/modify/view & decrption on saving note whenever
-#           -P, --password          use password for encryption/decrption
-#           --password-file         read file for password
-#           --call                  call command for encrypt/decrypt
+    log_plain "${idnt_l1}$(as_bold " -h")|$(as_bold "--help")${fsep_3}Show help and exit."
+    log_plain "${idnt_l1}$(as_bold " --info")${fsep_4}Show information and exit."
+    log_plain "${idnt_l1}$(as_bold " -V")|$(as_bold "--version")${fsep_3}Show version and exit."
+    log_plain "${idnt_l1}$(as_bold " -v")|$(as_bold "--verbose")${fsep_3}Be verbose."
+    log_plain "${idnt_l1}$(as_bold " -d")|$(as_bold "--debug")${fsep_3}Enable debug mesages to print."
+    log_plain "${idnt_l1}$(as_bold " -D")|$(as_bold "--silent")${fsep_3}Be silent, don't ask questions, use default values whenever required."
+    log_plain "${idnt_l1}$(as_bold " -q")|$(as_bold "--quite")${fsep_3}Disable warning messages to print."
+    log_plain "${idnt_l1}$(as_bold " --strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
+    log_plain "${idnt_l1}$(as_bold " --gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
+    log_plain "${idnt_l1}$(as_bold " --no-pretty")${fsep_3}Do not prettify output."
+    log_plain "${idnt_l1}$(as_bold " --stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
 
+    log_plain "${idnt_l1}$(as_bold " -C")|$(as_bold "--config")${fsep_3}Manages config, if specified, then atleast one option has to be supplied."
+    log_plain "${idnt_sc1}$(as_bold " -i")|$(as_bold "--import") [$(as_bold "$(as_light_green "file")")]${fsep_2}Import config from $(as_bold "$(as_light_green "file")")."
+    log_plain "${idnt_sc1}$(as_bold " -x")|$(as_bold "--export") [$(as_bold "$(as_light_green "file")")]${fsep_2}Export config to $(as_bold "$(as_light_green "file")")."
+    log_plain "${idnt_sc1}$(as_bold " -u")|$(as_bold "--use") [$(as_bold "$(as_light_green "file")")]${fsep_2}Use $(as_bold "$(as_light_green "file")") as current instance's config."
+    log_plain "${idnt_sc1}$(as_bold " -s")|$(as_bold "--set") [$(as_bold "$(as_light_green "'key=value'")")]${fsep_1}Use $(as_bold "$(as_light_green "'key=value'")") to override config's $(as_bold "$(as_light_green "key")") in current instance, repeat $(as_bold "set") option to override multiple keys."
+    
+    log_plain "${idnt_l1}$(as_bold " -n")|$(as_bold "--new")${fsep_3}Add new Note. If no options suplied then this will assume $(as_dim "defaults") or $(as_dim "ask") when input required."
+    log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Title of note. (required)"
+    log_plain "${idnt_sc1}$(as_bold " -g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Group name for note (use '$(as_bold ".")' for subgroups). Uses $(as_dim "default") group, if not specified."
+    log_plain "${idnt_sc1}$(as_bold " -T")|$(as_bold "--tag") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Tags name for note (use '$(as_bold ",")' for multiple tags). Uses $(as_dim "default") tag, if not specified."
+    log_plain "${idnt_sc1}$(as_bold " -r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
+    log_plain "${idnt_sc1}$(as_bold " -c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
+    log_plain "${idnt_sc1}$(as_bold " -f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
+
+    log_plain "${idnt_l1}$(as_bold " -l")|$(as_bold "--list")${fsep_3}List out notes from db. Output controlling options can affects it's output."
+    log_plain "${idnt_sc1}$(as_bold "--use-delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_1}Use $(as_bold "$(as_light_green "delimiter")") to delimit the output fields."
+    log_plain "${idnt_sc1}$(as_bold "--format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom output format with: $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")"). This format only affects note listing behaviour, and not tag/group listing."
+
+    log_plain "${idnt_l1}$(as_bold " -e")|$(as_bold "--erase")|$(as_bold "--delete")"
+    log_plain "${idnt_sc1}$(as_bold "--note") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Delete note with provided note id ($(as_bold "$(as_light_green "nid")"))."
+    log_plain "${idnt_sc1}$(as_bold "--group") [$(as_bold "$(as_light_green "gname")")]${fsep_2}Delete group with provided fully qualified group name $(as_bold "$(as_light_green "gname")"), changes notes to $(as_dim "default") group (safe delete)."
+    log_plain "${idnt_sc1}$(as_bold "--group-nosafe") [$(as_bold "$(as_light_green "gname")")]${fsep_1}Delete group with provided fully qualified group name $(as_bold "$(as_light_green "gname")"), also deletes the notes belongs to this $(as_bold "$(as_light_green "gname")") group"
+    log_plain "${idnt_sc1}$(as_bold "--tag") [$(as_bold "$(as_light_green "tname")")]${fsep_2}Delete tag with provided $(as_bold "$(as_light_green "tname")"), change note to $(as_dim "default") tag, if this was single tag to that note."
+
+    log_plain "${idnt_l1}$(as_bold " -o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Open note with provided $(as_bold "$(as_light_green "nid")") in editor."
+    log_plain "${idnt_sc1}$(as_bold "--stdout")${fsep_3}Just dump note to $(as_bold "stdout")."
+    log_plain "${idnt_sc1}$(as_bold "--no-edit")${fsep_3}Use pager instead of editor to open."
+    
+    log_plain "${idnt_l1}$(as_bold " -m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note with provided $(as_bold "$(as_light_green "nid")"), if no option from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") provided, it will just open note with editor."
+    log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Modify title of note."
+    log_plain "${idnt_sc1}$(as_bold " -g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Modify group of note (use '$(as_bold ".")' for subgroups)."
+    log_plain "${idnt_sc1}$(as_bold " -T")|$(as_bold "--tag") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Modify tags of note (use '$(as_bold ",")' for multiple tags)."
+    log_plain "${idnt_sc2}$(as_bold "--append")${fsep_3}Append new tags. (default)"
+    log_plain "${idnt_sc2}$(as_bold "--overwrite")${fsep_2}Overwrite with new tags."
+    log_plain "${idnt_sc2}$(as_bold "--delete")${fsep_3}Delete provied tags, if present, and change note to $(as_dim "default") tag, if note left with no tags."
+    log_plain "${idnt_sc1}$(as_bold " -r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
+    log_plain "${idnt_sc1}$(as_bold " -c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
+    log_plain "${idnt_sc1}$(as_bold " -f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
+    log_plain "${idnt_sc1}$(as_bold " -O")|$(as_bold "--no-append")|$(as_bold "--overwrite")${fsep_1}Do not append to note, and overwrite with new content."
+
+    log_plain "${idnt_l1}$(as_bold " -F")|$(as_bold "--find")|$(as_bold "--search")${fsep_2}Search Tags, Groups or Notes and list them. Output controlling & comparision options can affects it's behaviour. By default, Results are $(as_bold "OR")ed with each other, if $(as_dim "strict") comparision is specified, then Results will be $(as_bold "AND")ed with each other."
+    log_plain "${idnt_sc1}$(as_bold "--tags") [$(as_bold "$(as_light_green "pattern")")]${fsep_2}Search Tags with matching $(as_bold "$(as_light_green "pattern")"), and display number of notes belong to them."
+    log_plain "${idnt_sc2}$(as_bold "--list")${fsep_3}Display all notes instead of count of notes."
+    log_plain "${idnt_sc1}$(as_bold "--group") [$(as_bold "$(as_light_green "pattern")")]${fsep_2}Search Groups with matching $(as_bold "$(as_light_green "pattern")"), and display number of notes belong to them."
+    log_plain "${idnt_sc2}$(as_bold "--list")${fsep_3}Display all notes instead of count of notes."
+    log_plain "${idnt_sc1}$(as_bold "--note") [$(as_bold "$(as_light_green "pattern")")]${fsep_2}Search notes title & content for matching $(as_bold "$(as_light_green "pattern")")."
+    log_plain "${idnt_sc2}$(as_bold "--title-only")${fsep_2}Limit searching of $(as_bold "$(as_light_green "pattern")") to notes title only."
+    log_plain "${idnt_sc2}$(as_bold "--note-only")${fsep_2}Limit searching of $(as_bold "$(as_light_green "pattern")") to notes content only."
+    log_plain "${idnt_sc2}$(as_bold "--with-tags") [$(as_bold "$(as_light_green "tags")")]${fsep_1}Filter notes with provided $(as_bold "$(as_light_green "tags")")."
+    log_plain "${idnt_sc2}$(as_bold "--with-group") [$(as_bold "$(as_light_green "group")")]${fsep_1}Filter notes with provided $(as_bold "$(as_light_green "group")")."
+    log_plain "${idnt_sc2}$(as_bold "--created-on") <$(as_bold "$(as_light_green "date")")>${fsep_1}Filter notes with provided created on $(as_bold "$(as_light_green "date")"). $(as_bold "$(as_light_green "date")") and $(as_dim "sub-options") are mutually exclusive to each other." 
+    log_plain "${idnt_sc3}$(as_bold "--before") [$(as_bold "$(as_light_green "date")")]${fsep_1}Filter notes that are created before $(as_bold "$(as_light_green "date")")."
+    log_plain "${idnt_sc3}$(as_bold "--after") [$(as_bold "$(as_light_green "date")")]${fsep_2}Filter notes that are created after $(as_bold "$(as_light_green "date")")."
+    log_plain "${idnt_sc2}$(as_bold "--last-edit") <$(as_bold "$(as_light_green "date")")>${fsep_1}Filter notes with provided modified on $(as_bold "$(as_light_green "date")"). $(as_bold "$(as_light_green "date")") and $(as_dim "sub-options") are mutually exclusive to each other." 
+    log_plain "${idnt_sc3}$(as_bold "--before") [$(as_bold "$(as_light_green "date")")]${fsep_1}Filter notes that are modified before $(as_bold "$(as_light_green "date")")."
+    log_plain "${idnt_sc3}$(as_bold "--after") [$(as_bold "$(as_light_green "date")")]${fsep_2}Filter notes that are modified after $(as_bold "$(as_light_green "date")")."
+
+}
+
+function _info {
+    __banner__
+    log_plain "\n$(as_bold "[$(as_yellow "NAME")]")"
+    log_plain "\t$(as_underline "$(as_bold "Annotate") Terminal based notes managing utility for GNU/Linux OS.")"
+
+    log_plain "\n$(as_bold "[$(as_yellow "SYNOPSIS")]")"
+    log_plain "\t$(as_bold "annote") $(as_underline "OPTIONS")"
+
+    log_plain "\n$(as_bold "[$(as_yellow "DESCRIPTION")]")"
+    log_plain "\tYou can take note from terminal, or GUI, Capture file into \
+note, or record script or pipe \n\tcommands output to it to save for later, \
+it can does that."
+    log_plain "\t$(as_dim "\"Take notes from wherever, whenever, orcestrate in any way, \
+and it does the thing 'notes' \n\tare supposed to do so, whenever, wherever, \
+however it doen't make any difference.\"")"
+    log_plain "\tIt's not an App that works in isolation, it's utility, that works in integration to terminal."
+
+    log_plain "\n$(as_bold "[$(as_yellow "OPTIONS")]")"
+    help '\t'
+
+    log_plain "\n$(as_bold "[$(as_yellow "EXIT STATUS")]")"
+    log_plain "\t$(as_bold "annote") exits with status $(as_bold "0") as success, \
+greater than $(as_bold "0") if errors occur."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "0") means success."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "1") means 'configuration' related error."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "2") means 'date' related error."
+
+    log_plain "\n$(as_bold "[$(as_yellow "AUTHORS")]")"
+    log_plain "\tDinesh Saini <https://github.com/dineshsaini/>"
+
+    log_plain "\n$(as_bold "[$(as_yellow "REPORTING BUGS")]")"
+    log_plain "\tFor bug reports, use the issue tracker at https://github.com/grayphi/annote/issues"
+
+}
+
+function info {
+    if [ "x$flag_no_pager" = "x" ]; then
+        _info | less -r
+    else
+        _info 
+    fi
 }
 
 function version {
@@ -1972,6 +2022,10 @@ function parse_args {
         local arg="$1"
         shift
         case "$arg" in
+            "--info")
+                info
+                exit 0
+                ;;
             "-h"|"--help")
                 help
                 exit 0
@@ -2042,5 +2096,4 @@ function parse_args {
 
 parse_args "$@"
 initialize_conf
-
 
