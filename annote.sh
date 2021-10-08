@@ -5,18 +5,13 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="0.14"
+__VERSION__="0.15"
 
 # variables
 c_red="$(tput setaf 196)"
-c_blue="$(tput setaf 21)"
 c_cyan="$(tput setaf 44)"
 c_light_green_2="$(tput setaf 10)"
-c_green="$(tput setaf 46)"
-c_magenta="$(tput setaf 164)"
-c_white="$(tput setaf 195)"
 c_yellow="$(tput setaf 190)"
-c_gray="$(tput setaf 241)"
 c_orange="$(tput setaf 202)"
 c_light_blue="$(tput setaf 42)"
 c_light_green="$(tput setaf 2)"
@@ -28,7 +23,6 @@ b_light_black="$(tput setab 236)"
 
 s_bold="$(tput bold)"
 s_dim="$(tput dim)"
-s_normal="$(tput sgr0)"
 s_underline="$(tput smul)"
 
 p_reset="$(tput sgr0)"
@@ -52,10 +46,11 @@ find_with_group=""          # fqgn
 find_created_on=""          # range seperated with comma
 find_modified=""            # range seperated with comma
 
-# empty for editor, r -> record script, c -> content, f -> file
-flag_new_arg4=""   
-# empty for editor, r -> record script, c -> content, f -> file
-flag_modify_arg2=""
+declare -A mutex_ops=()
+declare -A mutex_ops_args=()
+
+flag_new_arg4=""            # empty for editor, r -> record script, c -> content, f -> file
+flag_modify_arg2=""         # empty for editor, r -> record script, c -> content, f -> file
 flag_append_mode="y"        # 'y' --> append, empty to overwrite
 flag_gui_editor=""          # 'y' --> use gui editor, empty use cli
 flag_disable_warnings=""    # 'y' --> disable warnings, empty to enable
@@ -66,16 +61,15 @@ flag_no_pretty=""           # 'y' --> no pretty, empty to prettify
 flag_no_pager=""            # 'y' --> no pager, empty to use pager
 flag_nosafe_grpdel=""       # 'y' --> enable nosafe, empty for safe
 flag_open_noedit=""         # 'y' --> view only pager, empty to edit
-flag_open_stdout=""         # 'y' --> output to stdout, empty for pager/editor
 flag_modify_tag_mode=""     # 'o' --> overwrite, 'd' -->delete, 'a' or empty append
-flag_encrypt_mode=""        # 'y' --> enable enc/dec, empty for no enc/dec
 flag_search_mode=""         # 't' --> title only, 'n' --> note only, blank to search on both
 flag_strict_find=""         # 'y' --> to matches strictly, blank for anywhere search
 flag_list_find=""           # 'y' --> to show list of notes not count, blank for count
+flag_debug_mutex_ops=""     # 'y' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
 ERR_DATE=2
-
+ERR_MUTEX_OPTS=3
 
 # functions 
 function __cont {
@@ -91,32 +85,12 @@ function as_red {
     echo "$(_color "$1" "$c_red")"
 }
 
-function as_blue {
-    echo "$(_color "$1" "$c_blue")"
-}
-
 function as_cyan {
     echo "$(_color "$1" "$c_cyan")"
 }
 
-function as_green {
-    echo "$(_color "$1" "$c_green")"
-}
-
-function as_magenta {
-    echo "$(_color "$1" "$c_magenta")"
-}
-
-function as_white {
-    echo "$(_color "$1" "$c_white")"
-}
-
 function as_yellow {
     echo "$(_color "$1" "$c_yellow")"
-}
-
-function as_gray {
-    echo "$(_color "$1" "$c_gray")"
 }
 
 function as_orange {
@@ -161,32 +135,28 @@ function as_dim {
     echo "$(_color "$1" "$s_dim")"
 }
 
-function as_normal {
-    echo "$(_color "$1" "$s_normal")"
-}
-
 function as_underline {
     echo "$(_color "$1" "$s_underline")"
 }
 
 # loggers
 function log_error {
-    log "$1" "$(as_bold "$(as_red 'ERROR')")"   >&2
+    log "$(as_bold "$(as_red 'ERROR')")"  "$*"  >&2
 }
 
 function log_info {
-    log "$1" "$(as_cyan 'INFO')"
+    log "$(as_cyan 'INFO')" "$*"
 }
 
 function log_warn {
     if [ "x$flag_disable_warnings" != "xy" ]; then
-        log "$1" "$(as_light_red 'WARN')"
+        log "$(as_light_red 'WARN')" "$*"
     fi
 }
 
 function log_debug {
     if [ "x$flag_enable_debug" = "xy" ]; then
-        log "$1" "$(as_bold "$(as_yellow 'DEBUG')")"
+        log "$(as_bold "$(as_yellow 'DEBUG')")" "$*"
     fi
 }
 
@@ -194,25 +164,26 @@ function log {
     local sym="$(as_bold "$(as_light_blue '*')" )"
     
     if [ $# -eq 2 ]; then
-        sym="$2"
+        sym="$1"
+        shift
     fi
 
-    log_plain "[$sym]: $1" 
+    log_plain "[$sym]: $*" 
 }
 
 function log_plain {
-    echo -e "$1"
+    echo -e "$*"
 }
 
 function log_verbose {
     if [ "x$flag_verbose" = "xy" ]; then
-        log "$1"
+        log "$*"
     fi
 }
 
 function log_verbose_info {
     if [ "x$flag_verbose" = "xy" ]; then
-        log_info "$1"
+        log_info "$*"
     fi
 }
 
@@ -258,6 +229,8 @@ function help {
     log_plain "${idnt_l1}$(as_bold " --gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
     log_plain "${idnt_l1}$(as_bold " --no-pretty")${fsep_3}Do not prettify output."
     log_plain "${idnt_l1}$(as_bold " --stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
+    log_plain "${idnt_l1}$(as_bold " --delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
+    log_plain "${idnt_l1}$(as_bold " --format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
 
     log_plain "${idnt_l1}$(as_bold " -C")|$(as_bold "--config")${fsep_3}Manages config, if specified, then atleast one option has to be supplied."
     log_plain "${idnt_sc1}$(as_bold " -i")|$(as_bold "--import") [$(as_bold "$(as_light_green "file")")]${fsep_2}Import config from $(as_bold "$(as_light_green "file")")."
@@ -274,8 +247,6 @@ function help {
     log_plain "${idnt_sc1}$(as_bold " -f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
 
     log_plain "${idnt_l1}$(as_bold " -l")|$(as_bold "--list")${fsep_3}List out notes from db. Output controlling options can affects it's output."
-    log_plain "${idnt_sc1}$(as_bold "--use-delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_1}Use $(as_bold "$(as_light_green "delimiter")") to delimit the output fields."
-    log_plain "${idnt_sc1}$(as_bold "--format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
 
     log_plain "${idnt_l1}$(as_bold " -e")|$(as_bold "--erase")|$(as_bold "--delete")"
     log_plain "${idnt_sc1}$(as_bold "--note") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Delete note $(as_bold "$(as_light_green "nid")")(id)."
@@ -284,7 +255,6 @@ function help {
     log_plain "${idnt_sc1}$(as_bold "--tag") [$(as_bold "$(as_light_green "tname")")]${fsep_2}Delete tag $(as_bold "$(as_light_green "tname")"), assign $(as_dim "default") tag, if this was only tag to that note."
 
     log_plain "${idnt_l1}$(as_bold " -o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Open note $(as_bold "$(as_light_green "nid")")(id) in editor."
-    log_plain "${idnt_sc1}$(as_bold "--stdout")${fsep_3}Just dump note to $(as_bold "stdout")."
     log_plain "${idnt_sc1}$(as_bold "--no-edit")${fsep_3}Use pager instead of editor to open."
     
     log_plain "${idnt_l1}$(as_bold " -m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note $(as_bold "$(as_light_green "nid")")(id), if none from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") are present, then open note with editor."
@@ -342,13 +312,13 @@ greater than $(as_bold "0") if errors occur."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "0") means success."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "1") means 'configuration' related error."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "2") means 'date' related error."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "3") means mutex options provided."
 
     log_plain "\n$(as_bold "[$(as_yellow "AUTHORS")]")"
     log_plain "\tDinesh Saini <https://github.com/dineshsaini/>"
 
     log_plain "\n$(as_bold "[$(as_yellow "REPORTING BUGS")]")"
     log_plain "\tFor bug reports, use the issue tracker at https://github.com/grayphi/annote/issues"
-
 }
 
 function info {
@@ -1003,7 +973,7 @@ function open_note {
     if [ -n "$nid" ]; then
         local nf="$(get_note "$nid")"
         if [ -f "$nf" ]; then
-            if [ "x$flag_open_stdout" = "xy" ]; then
+            if [ "x$flag_no_pager" = "xy" ]; then
                 cat "$nf"
             elif [ "x$flag_open_noedit" = "xy" ]; then
                 less "$nf"
@@ -1474,6 +1444,49 @@ function find_notes {
     fi
 }
 
+function push_op {
+    local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
+
+    if [ "x$pos" = "x" ]; then
+        pos="-1"
+    fi
+
+    pos="$(( ++pos ))"
+    mutex_ops["$pos"]="$1"
+}
+
+function push_op_args {
+    local pos="$(echo "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
+    
+    if [ "x$pos" = "x" ]; then
+        pos="-1"
+    fi
+
+    pos="$(( ++pos ))"
+    mutex_ops_args[$pos]="$1"
+}
+
+function pop_op {
+    v_pop_op=""
+    local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | head -n1)"
+    
+    if [ "x$pos" != "x" ]; then
+        v_pop_op="${mutex_ops[$pos]}"
+        unset mutex_ops[$pos]
+    fi
+}
+
+function pop_op_args {
+    v_pop_op_args=""
+    local pos="$(echo "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | \
+        head -n1)"
+
+    if [ "x$pos" != "x" ]; then
+        v_pop_op_args="${mutex_ops_args[$pos]}"
+        unset mutex_ops_args[$pos]
+    fi
+}
+
 function parse_date {
     local cdate=""
     cdate="$(date --date="$1" "+%s" 2>/dev/null)"
@@ -1528,7 +1541,7 @@ function _parse_args_config {
     done
 
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function _parse_args_new {
@@ -1573,9 +1586,14 @@ function _parse_args_new {
                 ;;
         esac
     done
-    # FIXME: action needs to be added 
+    push_op "new"
+    push_op_args "$title"
+    push_op_args "$group"
+    push_op_args "$tags"
+    push_op_args "$note"
+
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function _parse_args_list {
@@ -1592,14 +1610,6 @@ function _parse_args_list {
                 flag_no_pretty="y"
                 shift
                 ;;
-            "--use-delim")
-                list_delim="$2"
-                shift 2
-                ;;
-            "--format")
-                list_fmt="$2"
-                shift 2
-                ;;
             *)
                 eflag=1
                 ;;
@@ -1607,7 +1617,7 @@ function _parse_args_list {
     done
     # FIXME: action needs to be added 
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function _parse_args_delete {
@@ -1644,7 +1654,7 @@ function _parse_args_delete {
     done
     # FIXME: action needs to be added 
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function _parse_args_modify {
@@ -1731,7 +1741,7 @@ function _parse_args_modify {
     # FIXME modify action
 
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function _parse_args_open {
@@ -1743,10 +1753,6 @@ function _parse_args_open {
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
-            "--stdout")
-                flag_open_stdout="y"
-                shift
-                ;;
             "--no-edit")
                 flag_open_noedit="y"
                 shift
@@ -1764,7 +1770,7 @@ function _parse_args_open {
     done
     # FIXME: action needs to be added 
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function _parse_args_find {
@@ -2011,11 +2017,11 @@ function _parse_args_find {
         esac
     done
     local n2="$#"
-    echo "$((n1-n2))"
+    shift_n="$((n1-n2))"
 }
 
 function parse_args {
-    local n=0
+    local shift_n=0
     while [ $# -gt 0 ]; do
         local arg="$1"
         shift
@@ -2056,33 +2062,41 @@ function parse_args {
             "--stdout")
                 flag_no_pager="y"
                 ;;
+            "--delim")
+                list_delim="$1"
+                shift 
+                ;;
+            "--format")
+                list_fmt="$1"
+                shift 
+                ;;
             "-C"|"--config")
-                n="$(_parse_args_config "$@")"
-                shift $n
+                _parse_args_config "$@"
+                shift $shift_n
                 ;;
             "-n"|"--new")
-                n="$(_parse_args_new "$@")"
-                shift $n
+                _parse_args_new "$@"
+                shift $shift_n
                 ;;
             "-l"|"--list")
-                n="$(_parse_args_list "$@")"
-                shift $n
+                _parse_args_list "$@"
+                shift $shift_n
                 ;;
             "-e"|"--erase"|"--delete")
-                n="$(_parse_args_delete "$@")"
-                shift $n
+                _parse_args_delete "$@"
+                shift $shift_n
                 ;;
             "-o"|"--open")
-                n="$(_parse_args_open "$@")"
-                shift $n
+                _parse_args_open "$@"
+                shift $shift_n
                 ;;
             "-F"|"--find"|"--search")
-                n="$(_parse_args_find "$@")"
-                shift $n
+                _parse_args_find "$@"
+                shift $shift_n
                 ;;
             "-m"|"--modify"|"--edit")
-                n="$(_parse_args_modify "$@")"
-                shift $n
+                _parse_args_modify "$@"
+                shift $shift_n
                 ;;
             *)
                 log_error "Unknow option '$arg', check help for details."
@@ -2092,6 +2106,40 @@ function parse_args {
     done
 }
 
+function do_actions {
+    if [[ ${#mutex_ops[@]} -gt 1 ]] && [ "x$flag_debug_mutex_ops" = "x" ]; then
+        log_error "Multiple actions defined, only one can be specified at a time. Check help for details."
+        exit $ERR_MUTEX_OPTS
+    elif [[ ${#mutex_ops[@]} -eq 0 ]]; then
+        log_error "No actions defined. Check help for details."
+        exit 0
+    fi
+    
+    while [[ ${#mutex_ops[@]} -ne 0 ]]; do
+        local v_pop_op=""
+        pop_op
+        case "$v_pop_op" in
+            "new")
+                local v_pop_op_args=""
+                pop_op_args
+                title="$v_pop_op_args"
+                pop_op_args
+                group="$v_pop_op_args"
+                pop_op_args
+                tags="$v_pop_op_args"
+                pop_op_args
+                note="$v_pop_op_args"
+
+                add_note "$title" "$group" "$tags" "$note"
+                ;;
+            *)
+                log_error "No such action ('$v_pop_op') defined."
+                exit 0
+                ;;
+        esac
+    done
+}
+
 parse_args "$@"
 initialize_conf
-
+do_actions
