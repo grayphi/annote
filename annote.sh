@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="0.16"
+__VERSION__="0.17"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -49,7 +49,6 @@ flag_modify_arg2=""         # empty for editor, r -> record script, c -> content
 flag_append_mode="y"        # 'y' --> append, empty to overwrite
 flag_gui_editor=""          # 'y' --> use gui editor, empty use cli
 flag_disable_warnings=""    # 'y' --> disable warnings, empty to enable
-flag_enable_debug=""        # 'y' --> enable debugging, empty to disable
 flag_verbose=""             # 'y' --> be verbose, empty no verbose
 flag_no_ask=""              # 'y' --> no ask, empty to ask
 flag_no_pretty=""           # 'y' --> no pretty, empty to prettify
@@ -66,7 +65,6 @@ ERR_CONFIG=1
 ERR_DATE=2
 ERR_MUTEX_OPTS=3
 
-# functions 
 function __cont {
     echo "$(echo "$1" | sed -e "s/${p_reset/[/\\[}/$p_reset$2/g")"
 }
@@ -75,7 +73,6 @@ function _color {
     echo "$2$(__cont "$1" "$2")$p_reset"
 }
 
-# colors
 function as_red {
     echo "$(_color "$1" "$c_red")"
 }
@@ -108,7 +105,6 @@ function as_light_red {
     echo "$(_color "$1" "$c_light_red")"
 }
 
-# backgrounds
 function on_black {
     echo "$(_color "$1" "$b_black")"
 }
@@ -121,7 +117,6 @@ function on_dark_black {
     echo "$(_color "$1" "$b_dark_black")"
 }
 
-# styles
 function as_bold {
     echo "$(_color "$1" "$s_bold")"
 }
@@ -134,7 +129,6 @@ function as_underline {
     echo "$(_color "$1" "$s_underline")"
 }
 
-# loggers
 function log_error {
     log "$(as_bold "$(as_red 'ERROR')")"  "$*"  >&2
 }
@@ -149,20 +143,12 @@ function log_warn {
     fi
 }
 
-function log_debug {
-    if [ "x$flag_enable_debug" = "xy" ]; then
-        log "$(as_bold "$(as_yellow 'DEBUG')")" "$*"
-    fi
-}
-
 function log {
     local sym="$(as_bold "$(as_light_blue '*')" )"
-    
     if [ $# -eq 2 ]; then
         sym="$1"
         shift
     fi
-
     log_plain "[$sym]: $*" 
 }
 
@@ -190,7 +176,6 @@ function prompt_error {
     echo "$(log "$(as_red "$(as_bold "$1")")")"
 }
 
-# banner
 function __banner__ {
     as_light_green_2 ''
     as_light_green_2 '  █████╗ ███╗   ██╗███╗   ██╗ ██████╗ ████████╗ █████╗ ████████╗███████╗'
@@ -202,7 +187,6 @@ function __banner__ {
     log_plain "$(as_orange "                              $__NAME__ (v$__VERSION__)")"
 }
 
-#help
 function help {
     local idnt_l1="$1"
     local idnt_sc1="$idnt_l1   "
@@ -217,7 +201,6 @@ function help {
     log_plain "${idnt_l1}$(as_bold " --info")${fsep_4}Show information and exit."
     log_plain "${idnt_l1}$(as_bold " -V")|$(as_bold "--version")${fsep_3}Show version and exit."
     log_plain "${idnt_l1}$(as_bold " -v")|$(as_bold "--verbose")${fsep_3}Be verbose."
-    log_plain "${idnt_l1}$(as_bold " -d")|$(as_bold "--debug")${fsep_3}Enable debug mesages to print."
     log_plain "${idnt_l1}$(as_bold " -D")|$(as_bold "--silent")${fsep_3}Be silent, don't ask questions, use $(as_dim "default") values whenever required."
     log_plain "${idnt_l1}$(as_bold " -q")|$(as_bold "--quite")${fsep_3}Disable warning messages to print."
     log_plain "${idnt_l1}$(as_bold " --strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
@@ -280,7 +263,6 @@ function help {
     log_plain "${idnt_sc2}$(as_bold "--last-edit") <$(as_bold "$(as_light_green "date")")>${fsep_1}Filter notes with modified on $(as_bold "$(as_light_green "date")"). $(as_bold "$(as_light_green "date")") and $(as_dim "sub-options") are mutually exclusive." 
     log_plain "${idnt_sc3}$(as_bold "--before") [$(as_bold "$(as_light_green "date")")]${fsep_1}Filter notes that are modified before $(as_bold "$(as_light_green "date")")."
     log_plain "${idnt_sc3}$(as_bold "--after") [$(as_bold "$(as_light_green "date")")]${fsep_2}Filter notes that are modified after $(as_bold "$(as_light_green "date")")."
-
 }
 
 function _info {
@@ -302,8 +284,7 @@ function _info {
     help '\t'
 
     log_plain "\n$(as_bold "[$(as_yellow "EXIT STATUS")]")"
-    log_plain "\t$(as_bold "annote") exits with status $(as_bold "0") as success, \
-greater than $(as_bold "0") if errors occur."
+    log_plain "\t$(as_bold "annote") exits with status $(as_bold "0") as success, greater than $(as_bold "0") if errors occur."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "0") means success."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "1") means 'configuration' related error."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "2") means 'date' related error."
@@ -384,7 +365,6 @@ function _conf_file {
     while IFS= read -r line; do
         local key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
         local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
-        
         _set_key "$key" "$value"
     done < <(sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' \
         -e '/^$/d' $cfile)
@@ -422,11 +402,9 @@ function initialize_conf {
     _load_sys_conf
     _load_user_conf
     _set_keys_conf
-
     notes_loc="$db_loc/notes"
     groups_loc="$db_loc/groups"
     tags_loc="$db_loc/tags"
-
     mkdir -p "$db_loc"
     mkdir -p "$notes_loc"
     mkdir -p "$groups_loc"
@@ -456,7 +434,6 @@ function tag_exists {
 function group_exists {
     local gname="$1"
     local retval="false"
-
     if [ -n "$gname" ]; then
         if [ -d "$groups_loc/$(echo "$gname" | sed 's/\./\//g')" ]; then
             retval="true"
@@ -470,7 +447,6 @@ function get_group {
     group="$(echo "$group" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9._ ]//g' \
         -e 's/\.\+/./g' -e 's/^ //' -e 's/ $//' -e 's/ \././g' \
         -e 's/\. /./g' -e 's/ /_/g' -e 's/^\.//' -e 's/\.$//' )"
-    
     if [ -z "$group" ]; then
         group="$def_group"
     fi
@@ -479,11 +455,9 @@ function get_group {
 
 function get_tags {
     local tags="$1"
-
     tags="$(echo "$tags" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9,_ ]//g' \
         -e 's/,\+/,/g' -e 's/^ //' -e 's/ $//' -e 's/ ,/,/g' -e 's/, /,/g' \
         -e 's/ /_/g' -e 's/^,//' -e 's/,$//' )"
-    
     if [ -z "$tags" ]; then
         tags="$def_tag"
     fi
@@ -516,14 +490,12 @@ function _gen_note_id {
 function _create_note {
     local nid="$(_gen_note_id)"
     local nloc="$notes_loc/$nid"
-    
     mkdir "$nloc"
     touch "$nloc/$nid.title"
     touch "$nloc/$nid.note"
     touch "$nloc/$nid.group"
     touch "$nloc/$nid.tags"
     touch "$nloc/$nid.metadata"
-    
     echo "Created On: $(date --date="@${nid#n}")" > "$nloc/$nid.metadata"
     echo "$nid"
 }
@@ -534,13 +506,10 @@ function _new_note {
     local tags="$3"
     local nid="$(_create_note)"
     local nloc="$notes_loc/$nid"
-
     echo "$title" > "$nloc/$nid.title" 
-    
     local gl="$(get_group_loc "$group")"
     echo "$group" > "$nloc/$nid.group"
     echo "$nid" >> "$gl/notes.lnk"
-    
     local tag=""
     while IFS= read -d, -r tag ; do
         # useless check, but let it be,in case read takes last ignored empty
@@ -550,7 +519,6 @@ function _new_note {
             echo "$nid" >> "$tl/notes.lnk"
         fi
     done < <(echo "$tags,")
-
     echo "Modified On: $(date)" >> "$nloc/$nid.metadata"
     echo "$nid"
 }
@@ -602,12 +570,9 @@ function change_note_group {
         local ngf="$notes_loc/$nid/$nid.group"
         local gl="$(get_group_loc "$g_old")"
         local gf="$gl/notes.lnk"
-
         sed -i -e "/^$nid$/d" $gf
-        
         gl="$(get_group_loc "$g_new")"
         gf="$gl/notes.lnk"
-
         echo "$nid" >> "$gf"
         echo "$g_new" > "$ngf"
     fi
@@ -630,7 +595,6 @@ function get_metadata {
         local mfile="$notes_loc/$nid/$nid.metadata"
         value="$(cat $mfile | grep "^$key: " | sed -e "s/^$key: //" )"
     fi
-
     echo "$value"
 }
 
@@ -639,11 +603,9 @@ function add_note {
     local group="$2"
     local tags="$3"
     local note="$4"
-
     title="$(echo $title | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
     group="$(echo $group | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
     tags="$(echo $tags | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
-
     if [ -z "$title" ]; then
         read -r -p "$(prompt "Enter title for note:") " title
         while [ -z "$title" ]; do
@@ -651,7 +613,6 @@ function add_note {
                 "Enter title for note (can't be empty):") " title
         done
     fi
-
     if [ "x$flag_no_ask" = "x" ] && [ -z "$group" ]; then
         read -r -p "$(prompt \
             "Enter group (use '.' for subgroups) (enter to skip):") " group
@@ -660,13 +621,10 @@ function add_note {
         read -r -p "$(prompt \
             "Enter tags (',' seperated) (enter to skip):") " tags
     fi
-
     group="$(get_group "$group")"
     tags="$(get_tags "$tags")"
-
     local nid="$(_new_note "$title" "$group" "$tags")"
     local nf="$(get_note "$nid")"
-   
     case "$flag_new_arg4" in
         "r")
             log_info "Press 'Ctrl + D' when exit recording to note."
@@ -694,7 +652,6 @@ function add_note {
             fi
             ;;
     esac
-
     update_metadata "$nid" "Modified On" "$(date)" 
 }
 
@@ -702,19 +659,16 @@ function _list_prettify_fg {
     local c="$1"
     local txt="$2"
     local bold="$3"
-
     if [ "x$flag_no_pretty" != "xy" ]; then
         if [ $(( $c % 2 )) -eq 0 ]; then
             txt="$(as_cyan "$txt")"
         else
             txt="$(as_light_green_2 "$txt")"
         fi
-
         if [ "x$bold" = "xy" ]; then
             txt="$(as_bold "$txt")"
         fi
     fi
-    
     echo "$txt"
 }
 
@@ -737,9 +691,7 @@ function make_header {
     local ngrp="GROUP"
     local ntitle="TITLE"
     local ntags="TAGS"
-
     local fmt="$(echo "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    
     for i in {1..5}; do
        if [[ "$fmt" =~ \<SNO\> ]]; then
            sno="$(_list_prettify_fg "$i" "$sno" "y")"
@@ -767,9 +719,7 @@ function _list_note {
     local ngrp="$(get_note_group "$nid")"
     local ntitle="$(get_note_title "$nid")"
     local ntags="$(get_note_tags "$nid")"
-
     local fmt="$(echo "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    
     for i in {1..5}; do
        if [[ "$fmt" =~ \<SNO\> ]]; then
            sno="$(_list_prettify_fg "$i" "$sno" "y")"
@@ -799,9 +749,7 @@ function _list_notes {
     local nids="$1"
     local c=0
     local l=""
-
     on_black "$(make_header)"
-
     if [ -n "$nids" ]; then
         for n in `echo "$nids" | tr ',' '\n'`; do
             c="$(( ++c ))"
@@ -823,23 +771,20 @@ function list_notes {
         if [ "x$flag_no_pager" = "xy" ]; then
             _list_notes "$1"
         else
-            _list_notes "$1" | less -r
+            _list_notes "$1" | less -R
         fi
 }
 
 function build_header {
     local fmt=""
     local c=0
-
     while [[ $# -gt 0 ]]; do
         local arg="$1"
         shift
-
         arg="$(_list_prettify_fg "$c" "$arg" "y")"
         fmt="$fmt$arg$list_delim"
         c="$(( ++c ))"
     done
-
     echo -e "$(on_black "$fmt")"
 }
 
@@ -848,14 +793,11 @@ function build_row {
     shift
     local c=0;
     local fmt=""
-
     fmt="$(_list_prettify_fg "$c" "$row_n" "y")$list_delim"
-    
     while [[ $# -gt 0 ]]; do
         local t="$1"
         shift
         c="$(( ++c ))"
-        
         t="$(_list_prettify_fg "$c" "$t")"
         fmt="$fmt$t$list_delim"
     done
@@ -866,7 +808,6 @@ function list_groups {
     local groups="$1"
     local gl="$db_loc/groups"
     local sgl="$(echo "$gl" | sed 's/\//\\\//g')"
-
     if [ -z "$groups" ]; then
         groups="$(find $gl -type f -name 'notes.lnk' -print | sed \
             -e "s/^$sgl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
@@ -880,17 +821,14 @@ function list_groups {
         done
         groups="$(echo "$rgs" | sed 's/^,//')"
     fi
-
     local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
         build_header "S.No." "Group" "Note ID" "Note Title"
     else
         build_header "S.No." "Group" "Total Notes"
     fi
-
     for g in `echo "$groups" | tr ',' '\n'`; do
         local gf="$(get_group_loc "$g")/notes.lnk"
-    
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$gf" ]; then
                 for n in `cat $gf`; do
@@ -915,7 +853,6 @@ function list_tags {
     local tags="$1"
     local tl="$db_loc/tags"
     local stl="$(echo "$tl" | sed 's/\//\\\//g')"
-    
     if [ -z "$tags" ]; then
         tags="$(find $tl -type f -name 'notes.lnk' -print | sed \
             -e "s/^$stl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
@@ -929,17 +866,14 @@ function list_tags {
         done
         tags="$(echo "$rts" | sed 's/^,//')"
     fi
-
     local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
         build_header "S.No." "Tags" "Note ID" "Note Title"
     else
         build_header "S.No." "Tags" "Total Notes"
     fi
-
     for t in `echo "$tags" | tr ',' '\n'`; do
         local tf="$(get_tag_loc "$t")/notes.lnk"
-
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$tf" ]; then
                 for n in `cat $tf`; do
@@ -960,11 +894,8 @@ function list_tags {
     done
 }
 
-
-
 function open_note {
     local nid="$1"
-
     if [ -n "$nid" ]; then
         local nf="$(get_note "$nid")"
         if [ -f "$nf" ]; then
@@ -986,14 +917,12 @@ function open_note {
 function modify_title {
     local nid="$1"
     local t_new="$2"
-    
     if [ -n "$nid" ]; then
         if [ -n "$t_new" ]; then
             set_note_title "$nid" "$t_new"
         else
             local t_old="$(get_note_title "$nid")"
             log_info "Current title: "$(as_bold "$t_old")""
-
             read -r -p "$(prompt "Enter new title for note:") " t_new
             while [ -z "$t_new" ]; do
                 read -r -p "$(prompt_error \
@@ -1007,13 +936,11 @@ function modify_title {
 function modify_note {
     local nid="$1"
     local note="$2"
-
     if [ -n "$nid" ]; then
         local nf="$(get_note "$nid")"
         if [ "x$flag_append_mode" != "xy" ]; then
             echo -n "" > "$nf"
         fi
-
         case "$flag_modify_arg2" in
             "r")
                 log_info "Press 'Ctrl + D' when exit recording to note."
@@ -1041,7 +968,6 @@ function modify_note {
                 fi
                 ;;
         esac
-
         update_metadata "$nid" "Modified On" "$(date)"
     fi
 }
@@ -1049,27 +975,24 @@ function modify_note {
 function modify_group {
     local nid="$1"
     local g_new="$2"
-    
     if [ -n "$nid" ]; then
         if [ -n "$g_new" ]; then
             change_note_group "$nid" "$g_new"
         else
             local g_old="$(get_note_group "$nid")"
             log_info "Current group: "$(as_bold "$g_old")""
-
             read -r -p "$(prompt \
                 "Enter group (use '.' for subgroups) (enter to skip):") " g_new
             change_note_group "$nid" "$g_new"
         fi
     fi
 }
+
 function _add_note_tag {
     local nid="$1"
     local tag="$2"
-
     local ntf="$notes_loc/$nid/$nid.tags"
     local tnf="$(get_tag_loc "$tag")/notes.lnk"
-    
     echo "$nid" >> "$tnf"
     echo "$tag" >> "$ntf"
 }
@@ -1077,7 +1000,6 @@ function _add_note_tag {
 function add_note_tags {
     local nid="$1"
     local n_tags="$2"
-
     n_tags="$(get_tags "$n_tags")"
     n_tags="$(echo ",$n_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
         -e 's/^,//' -e 's/,$//')"
@@ -1092,10 +1014,8 @@ function add_note_tags {
 function _delete_note_tag {
     local nid="$1"
     local tag="$2"
-
     local ntf="$notes_loc/$nid/$nid.tags"
     local tnf="$(get_tag_loc "$tag")/notes.lnk"
-
     sed -i -e "/^$nid$/d" "$tnf"
     sed -i -e "/^$tag$/d" "$ntf"
 }
@@ -1103,40 +1023,32 @@ function _delete_note_tag {
 function delete_note_tags {
     local nid="$1"
     local d_tags="$2"
-
     d_tags="$(get_tags "$d_tags")"
     d_tags="$(echo ",$d_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
         -e 's/^,//' -e 's/,$//')"
-
     if [ -n "$d_tags" ]; then
         for t in `echo $d_tags | tr ',' '\n'`; do
             _delete_note_tag "$nid" "$t"
         done
     fi
-
     local nt="$(get_note_tags "$nid")" 
     if [ -z "$nt" ]; then
         _add_note_tag "$nid" "$def_tag"
     fi
 }
 
-
 function change_note_tags {
     local nid="$1"
     local t_new="$2"
-
     local t_old="$(get_note_tags "$nid")"
     t_new="$(get_tags "$t_new")"
-    
     t_old="$(echo "$t_old" | tr ',' '\n' | sort -u | tr '\n' ',' |\
         sed 's/,$//')"
     t_new="$(echo "$t_new" | tr ',' '\n' | sort -u | tr '\n' ',' | \
         sed 's/,$//')"
-    
     local a_tags=""
     local d_tags=""
     local c_tags=""
-
     for t in `echo "$t_new" | tr ',' '\n'`; do
         if [[ ",$t_old," =~ ,$t, ]]; then
             c_tags="$c_tags,$t"
@@ -1147,7 +1059,6 @@ function change_note_tags {
         fi
     done
     d_tags="$t_old"
-
     case $flag_modify_tag_mode in
         "a"|"")
             add_note_tags "$nid" "$a_tags"
@@ -1165,14 +1076,12 @@ function change_note_tags {
 function modify_tags {
     local nid="$1"
     local t_new="$2"
-
     if [ -n "$nid" ]; then
         if [ -n "$t_new" ]; then
             change_note_tags "$nid" "$t_new"
         else
             local t_old="$(get_note_tags "$nid")"
             log_info "Current tags: "$(as_bold "$t_old")""
-
             read -r -p "$(prompt \
                 "Enter tags (',' seperated) (enter to skip):") " t_new
             change_note_tags "$nid" "$t_new"
@@ -1182,22 +1091,17 @@ function modify_tags {
 
 function delete_note {
     local nid="$1"
-    
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nl="$notes_loc/$nid"
         delete_note_tags "$nid" "$(get_note_tags "$nid")"
         change_note_group "$nid" 
-            
         local gl="$(get_group_loc "$def_group")"
         local tl="$(get_tag_loc "$def_tag")"
         local gf="$gl/notes.lnk"
         local tf="$tl/notes.lnk"
-
         sed -i -e "/^$nid$/d" "$gf"
         sed -i -e "/^$nid$/d" "$tf"
-
         rm -rf "$nl"
-        
     fi
 }
 
@@ -1232,7 +1136,6 @@ function delete_group {
         for cg in `echo "$sgrps,$fqgn" | tr ',' '\n'`; do
             local gl="$(get_group_loc "$cg")"
             local nf="$gl/notes.lnk"
-
             if [ -f "$nf" ]; then 
                 for nid in `cat $nf`; do
                     if [ "x$flag_nosafe_grpdel" = "xy" ]; then
@@ -1252,11 +1155,9 @@ function find_tags {
     local tags=""
     local stl="$(echo "$tags_loc" | sed 's/\//\\\//g')"
     local apat="*"
-    
     if [ "x$flag_strict_find" = "xy" ]; then
         apat=""
     fi
-    
     tags="$(find $tags_loc  -mindepth 1 -maxdepth 1 -type d \
         -name "$apat$tpat$apat" -print | sed -e "s/^$stl\///" -e 's/\/$//' | \
         tr '\n' ',' | sed 's/,$//')"
@@ -1271,17 +1172,13 @@ function find_groups {
     local gpat="$1"
     local groups=""
     local sgl="$(echo "$groups_loc" | sed 's/\//\\\//g')"
-    
     if [ "x$flag_strict_find" != "xy" ]; then
         gpat="*$(echo "$gpat" | sed 's/\./*.*/g')*"
     fi
-   
     gpat="$(echo "$gpat" | sed 's/\./\//g')"
-
     groups="$(find $groups_loc  -mindepth 1 -type d -path "$groups_loc/$gpat" \
         -print | sed -e "s/^$sgl\///" -e 's/\/$//' -e 's/\//./g' | \
         tr '\n' ',' | sed 's/,$//')"
-
     if [ -n "$groups" ]; then
         list_groups "$groups"
     else
@@ -1296,11 +1193,8 @@ function find_notes {
     local find_created_on="$4"          # range seperated with comma
     local find_modified="$5"            # range seperated with comma
     local notes=""
-
     local snl="$(echo "$notes_loc" | sed 's/\//\\\//g')"
-
     stxt="$(echo "$stxt" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-
     if [ -n "$stxt" ] && [ "x$flag_search_mode" = "xt" ]; then
         notes="$(find "$notes_loc" -type f -iname "*.title" -exec grep \
             -ilFe "$stxt" {} \; | sed -e "s/^$snl\///" | cut -d/ -f1 | \
@@ -1315,7 +1209,6 @@ function find_notes {
             -e "s/^$snl\///" |cut -d/ -f1 | sort -u | tr '\n' ',' | \
             sed 's/,$//')"
     fi
-    
     if [ -n "$find_with_group" ] && [ -n "$notes" ]; then
         if [ "x$flag_strict_find" = "xy" ]; then
             if $(group_exists "$find_with_group"); then
@@ -1340,7 +1233,6 @@ function find_notes {
             done
         fi
     fi
-
     if [ -n "$find_with_tags" ] && [ -n "$notes" ]; then
         if [ "x$flag_strict_find" = "xy" ]; then
             for t in `echo "$find_with_tags" | tr ',' '\n'`; do
@@ -1363,7 +1255,6 @@ function find_notes {
             for n in `echo "$notes" | tr ',' '\n'`; do
                 local nt="$(get_note_tags "$n")"
                 local f=""
-                
                 for t in `echo "$find_with_tags" | tr ',' '\n'`; do
                     t="$(echo "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
                     if [[ "$(echo ",$nt," | grep -i ",.*$t.*," | wc -l)"  \
@@ -1372,7 +1263,6 @@ function find_notes {
                         break
                     fi
                 done
-
                 if [ -z "$f" ]; then
                     notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
@@ -1380,28 +1270,23 @@ function find_notes {
             done
         fi
     fi
-
     if [ -n "$find_created_on" ] && [ -n "$notes" ]; then
         local after="$(echo "$find_created_on" | cut -d, -f1)"
         local before="$(echo "$find_created_on" | cut -d, -f2)"
-        
         if [ -n "$after" ] && [ -n "$notes" ]; then
             for n in `echo "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Created On')"
                 d="$(date --date="$d" "+%s")"
-                
                 if [[ "$d" -lt "$after" ]]; then
                     notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
         fi
-
         if [ -n "$before" ] && [ -n "$notes" ]; then
             for n in `echo "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Created On')"
                 d="$(date --date="$d" "+%s")"
-                
                 if [[ "$d" -gt "$before" ]]; then
                     notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
@@ -1409,28 +1294,23 @@ function find_notes {
             done
         fi
     fi
-
     if [ -n "$find_modified" ] && [ -n "$notes" ]; then
         local after="$(echo "$find_modified" | cut -d, -f1)"
         local before="$(echo "$find_modified" | cut -d, -f2)"
-        
         if [ -n "$after" ] && [ -n "$notes" ]; then
             for n in `echo "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Modified On')"
                 d="$(date --date="$d" "+%s")"
-                
                 if [[ "$d" -lt "$after" ]]; then
                     notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
         fi
-
         if [ -n "$before" ] && [ -n "$notes" ]; then
             for n in `echo "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Modified On')"
                 d="$(date --date="$d" "+%s")"
-                
                 if [[ "$d" -gt "$before" ]]; then
                     notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
@@ -1438,7 +1318,6 @@ function find_notes {
             done
         fi
     fi
-
     if [ -n "$notes" ]; then
         list_notes "$notes"
     fi
@@ -1446,22 +1325,18 @@ function find_notes {
 
 function push_op {
     local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
-
     if [ "x$pos" = "x" ]; then
         pos="-1"
     fi
-
     pos="$(( ++pos ))"
     mutex_ops["$pos"]="$1"
 }
 
 function push_op_args {
     local pos="$(echo "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
-    
     if [ "x$pos" = "x" ]; then
         pos="-1"
     fi
-
     pos="$(( ++pos ))"
     mutex_ops_args[$pos]="$1"
 }
@@ -1469,7 +1344,6 @@ function push_op_args {
 function pop_op {
     v_pop_op=""
     local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | head -n1)"
-    
     if [ "x$pos" != "x" ]; then
         v_pop_op="${mutex_ops[$pos]}"
         unset mutex_ops[$pos]
@@ -1480,7 +1354,6 @@ function pop_op_args {
     v_pop_op_args=""
     local pos="$(echo "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | \
         head -n1)"
-
     if [ "x$pos" != "x" ]; then
         v_pop_op_args="${mutex_ops_args[$pos]}"
         unset mutex_ops_args[$pos]
@@ -1500,7 +1373,6 @@ function _parse_args_config {
     local n1="$#"
     local eflag=0
     local oflag=0
-
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
@@ -1539,7 +1411,6 @@ function _parse_args_config {
             ;;
         esac
     done
-
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1551,7 +1422,6 @@ function _parse_args_new {
     local group=""
     local tags=""
     local note=""
-
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
@@ -1591,7 +1461,6 @@ function _parse_args_new {
     push_op_args "$group"
     push_op_args "$tags"
     push_op_args "$note"
-
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1626,7 +1495,6 @@ function _parse_args_delete {
     local nid=""
     local group=""
     local tag=""
-
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
@@ -1676,7 +1544,6 @@ function _parse_args_modify {
     local flag_t=""
     local flag_g=""
     local flag_T=""
-
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg="$1"
         case "$sarg" in 
@@ -1756,23 +1623,19 @@ function _parse_args_modify {
         push_op_args "$nid"
         push_op_args "$title"
     fi
-
     if [ "x$flag_g" = "xy" ]; then
         push_op "modify_g"
         push_op_args "$nid"
         push_op_args "$group"
     fi
-
     if [ "x$flag_T" = "xy" ]; then
         push_op "modify_T"
         push_op_args "$nid"
         push_op_args "$tags"
     fi  
-
     push_op "modify_n"
     push_op_args "$nid"
     push_op_args "$note"
-
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1782,7 +1645,6 @@ function _parse_args_open {
     local eflag=0
     local nid=""
     local nflag=0
-
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
@@ -1818,7 +1680,6 @@ function _parse_args_find {
                 local tflag=0
                 local flag=0
                 local tag_pat=""
-
                 while [[ $# -ne 0 && $flag -eq 0 ]]; do
                     local sarg1="$1"
                     case "$sarg1" in
@@ -1876,7 +1737,6 @@ function _parse_args_find {
                 local find_with_group=""
                 local find_created_on=""
                 local find_modified=""
-
                 while [[ $# -ne 0 && $flag -eq 0 ]]; do
                     local sarg1="$1"
                     case "$sarg1" in
@@ -1903,7 +1763,6 @@ function _parse_args_find {
                             local adate=""
                             local cdate=""
                             local dflag=0
-    
                             while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
                                 local sarg2="$1"
                                 case "$sarg2" in
@@ -1914,7 +1773,6 @@ function _parse_args_find {
                                         fi
                                         bdate="$2"
                                         shift 2
-
                                         bdate="$(parse_date "$bdate")"
                                         if [ -z "$bdate" ]; then
                                             log_error "Enter valid '--before' date, check help for details."
@@ -1928,7 +1786,6 @@ function _parse_args_find {
                                         fi
                                         adate="$2"
                                         shift 2
-                                        
                                         adate="$(parse_date "$adate")"
                                         if [ -z "$adate" ]; then
                                             log_error "Enter valid '--after' date, check help for details."
@@ -1954,7 +1811,6 @@ function _parse_args_find {
                                         ;;
                                 esac
                             done
-
                             find_created_on="$adate,$bdate"
                             ;;
                         "--last-edit")
@@ -1964,7 +1820,6 @@ function _parse_args_find {
                             local adate=""
                             local cdate=""
                             local dflag=0
-    
                             while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
                                 local sarg2="$1"
                                 case "$sarg2" in
@@ -1975,7 +1830,6 @@ function _parse_args_find {
                                         fi
                                         bdate="$2"
                                         shift 2
-
                                         bdate="$(parse_date "$bdate")"
                                         if [ -z "$bdate" ]; then
                                             log_error "Enter valid '--before' date, check help for details."
@@ -1989,7 +1843,6 @@ function _parse_args_find {
                                         fi
                                         adate="$2"
                                         shift 2
-                                        
                                         adate="$(parse_date "$adate")"
                                         if [ -z "$adate" ]; then
                                             log_error "Enter valid '--after' date, check help for details."
@@ -2015,7 +1868,6 @@ function _parse_args_find {
                                         ;;
                                 esac
                             done
-
                             find_modified="$adate,$bdate"
                             ;;
                         *)
@@ -2065,9 +1917,6 @@ function parse_args {
                 ;;
             "-v"|"--verbose")
                 flag_verbose="y"
-                ;;
-            "-d"|"--debug")
-                flag_enable_debug="y"
                 ;;
             "-D"|"--silent")
                 flag_no_ask="y"
@@ -2139,7 +1988,6 @@ function do_actions {
         log_error "No actions defined. Check help for details."
         exit 0
     fi
-    
     while [[ ${#mutex_ops[@]} -ne 0 ]]; do
         local v_pop_op=""
         pop_op
@@ -2154,7 +2002,6 @@ function do_actions {
                 tags="$v_pop_op_args"
                 pop_op_args
                 note="$v_pop_op_args"
-
                 add_note "$title" "$group" "$tags" "$note"
                 ;;
             "list")
@@ -2201,7 +2048,6 @@ function do_actions {
                 local find_with_group=""
                 local find_created_on=""
                 local find_modified=""
-
                 local v_pop_op_args=""
                 pop_op_args
                 note_str="$v_pop_op_args"
@@ -2213,14 +2059,12 @@ function do_actions {
                 find_created_on="$v_pop_op_args"
                 pop_op_args
                 find_modified="$v_pop_op_args"
-
                 find_notes "$note_str" "$find_with_tags" "$find_with_group" "$find_created_on" "$find_modified"
                 ;;
             "modify_t")
                 local nid=""
                 local title=""
                 local v_pop_op_args=""
-
                 pop_op_args
                 nid="$v_pop_op_args"
                 pop_op_args
@@ -2231,7 +2075,6 @@ function do_actions {
                 local nid=""
                 local group=""
                 local v_pop_op_args=""
-
                 pop_op_args
                 nid="$v_pop_op_args"
                 pop_op_args
@@ -2242,7 +2085,6 @@ function do_actions {
                 local nid=""
                 local tags=""
                 local v_pop_op_args=""
-
                 pop_op_args
                 nid="$v_pop_op_args"
                 pop_op_args
@@ -2253,7 +2095,6 @@ function do_actions {
                 local nid=""
                 local note=""
                 local v_pop_op_args=""
-
                 pop_op_args
                 nid="$v_pop_op_args"
                 pop_op_args
