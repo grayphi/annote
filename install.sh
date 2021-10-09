@@ -9,6 +9,7 @@ fi
 
 mkdir -p $INSTALL_LOC
 cp ./annote.sh $INSTALL_LOC/$INSTALL_NAME
+chmod +x $INSTALL_LOC/$INSTALL_NAME
 
 bash $INSTALL_LOC/$INSTALL_NAME -C --import ./annote.config
 
