@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.00"
+__VERSION__="1.01"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -27,7 +27,7 @@ s_underline="$(tput smul)"
 
 p_reset="$(tput sgr0)"
 
-config_file="./annote.config"
+config_file="$(realpath ~)/.annote/annote.config"
 u_conf_file=""
 declare -A kv_conf_var=()
 db_loc="$(realpath ~)/.annote/db"
@@ -312,8 +312,10 @@ function version {
 function import_config {
     local imf="$1"
     if [ -f "$imf" ]; then
+        mkdir -p "$(dirname "$config_file")"
+        touch $config_file
         sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' -e 's/\s\+=/=/' \
-            -e 's/=\s\+/=/' -e '/^$/d' "$imf" > "$config_file"
+            -e 's/=\s\+/=/' -e '/^$/d' "$imf" >> "$config_file"
         log_info "Done importing conf file"
     else
         log_error "Error while importing"
@@ -362,12 +364,15 @@ function _set_key {
 function _conf_file {
     local cfile="$1"
     local line=""
-    while IFS= read -r line; do
-        local key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
-        local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
-        _set_key "$key" "$value"
-    done < <(sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' \
-        -e '/^$/d' $cfile)
+    cfile="$(echo "$cfile" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    if [ -n "$cfile" ] && [ -f "$cfile" ]; then
+        while IFS= read -r line; do
+            local key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
+            local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
+            _set_key "$key" "$value"
+        done < <(sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' \
+            -e '/^$/d' $cfile)
+    fi
 }   
 
 function _load_sys_conf {
