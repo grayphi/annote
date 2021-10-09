@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="0.15"
+__VERSION__="0.16"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -40,11 +40,6 @@ editor="vi"
 editor_gui="gedit"
 list_delim="  "
 list_fmt="<SNO><DELIM><NID><DELIM><TITLE>"
-
-find_with_tags=""           # comma seperated tags
-find_with_group=""          # fqgn
-find_created_on=""          # range seperated with comma
-find_modified=""            # range seperated with comma
 
 declare -A mutex_ops=()
 declare -A mutex_ops_args=()
@@ -1296,7 +1291,12 @@ function find_groups {
 
 function find_notes {
     local stxt="$1"
+    local find_with_tags="$2"           # comma seperated tags
+    local find_with_group="$3"          # fqgn
+    local find_created_on="$4"          # range seperated with comma
+    local find_modified="$5"            # range seperated with comma
     local notes=""
+
     local snl="$(echo "$notes_loc" | sed 's/\//\\\//g')"
 
     stxt="$(echo "$stxt" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
@@ -1615,7 +1615,7 @@ function _parse_args_list {
                 ;;
         esac
     done
-    # FIXME: action needs to be added 
+    push_op "list"
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1633,26 +1633,33 @@ function _parse_args_delete {
             "--note")
                 nid="$2"
                 shift 2
+                push_op "delete_n"
+                push_op_args "$nid"
                 ;;
             "--group")
                 group="$2"
                 shift 2
+                push_op "delete_g"
+                push_op_args "$group"
                 ;;
             "--group-nosafe")
                 flag_nosafe_grpdel="y"
                 group="$2"
                 shift 2
+                push_op "delete_g_ns"
+                push_op_args "$group"
                 ;;
             "--tag")
                 tag="$2"
                 shift 2
+                push_op "delete_t"
+                push_op_args "$tag"
                 ;;
             *)
                 eflag=1
                 ;;
         esac
     done
-    # FIXME: action needs to be added 
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1666,20 +1673,26 @@ function _parse_args_modify {
     local group=""
     local tags=""
     local note=""
+    local flag_t=""
+    local flag_g=""
+    local flag_T=""
 
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg="$1"
         case "$sarg" in 
             "-t"|"--title")
+                flag_t="y"
                 title="$2"
                 shift 2
                 ;;
             "-g"|"--group")
+                flag_g="y"
                 group="$2"
                 shift 2
                 ;;
             "-T"|"--tags")
                 shift
+                flag_T="y"
                 local tflag=0
                 local flag2=0
                 while [[ $# -ne 0 && $flag2 -eq 0 ]]; do
@@ -1738,7 +1751,27 @@ function _parse_args_modify {
                 ;;
         esac
     done
-    # FIXME modify action
+    if [ "x$flag_t" = "xy" ]; then
+        push_op "modify_t"
+        push_op_args "$nid"
+        push_op_args "$title"
+    fi
+
+    if [ "x$flag_g" = "xy" ]; then
+        push_op "modify_g"
+        push_op_args "$nid"
+        push_op_args "$group"
+    fi
+
+    if [ "x$flag_T" = "xy" ]; then
+        push_op "modify_T"
+        push_op_args "$nid"
+        push_op_args "$tags"
+    fi  
+
+    push_op "modify_n"
+    push_op_args "$nid"
+    push_op_args "$note"
 
     local n2="$#"
     shift_n="$((n1-n2))"
@@ -1768,7 +1801,8 @@ function _parse_args_open {
                 ;;
         esac
     done
-    # FIXME: action needs to be added 
+    push_op "open"
+    push_op_args "$nid"
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1788,16 +1822,8 @@ function _parse_args_find {
                 while [[ $# -ne 0 && $flag -eq 0 ]]; do
                     local sarg1="$1"
                     case "$sarg1" in
-                        "--count")
-                            flag_list_find=""
-                            shift
-                            ;;
                         "--list")
                             flag_list_find="y"
-                            shift
-                            ;;
-                        "--strict")
-                            flag_strict_find="y"
                             shift
                             ;;
                         *)
@@ -1811,7 +1837,8 @@ function _parse_args_find {
                             ;;
                     esac
                 done
-                # FIXME find tag action
+                push_op "find_t"
+                push_op_args "$tag_pat"
                 ;;
             "--group")
                 shift
@@ -1822,16 +1849,8 @@ function _parse_args_find {
                 while [[ $# -ne 0 && $flag -eq 0 ]]; do
                     local sarg1="$1"
                     case "$sarg1" in
-                        "--count")
-                            flag_list_find=""
-                            shift
-                            ;;
                         "--list")
                             flag_list_find="y"
-                            shift
-                            ;;
-                        "--strict")
-                            flag_strict_find="y"
                             shift
                             ;;
                         *)
@@ -1845,13 +1864,18 @@ function _parse_args_find {
                             ;;
                     esac
                 done
-                # FIXME find group action
+                push_op "find_g"
+                push_op_args "$group_pat"
                 ;;
             "--note")
                 shift
                 local nflag=0
                 local flag=0
                 local note_str=""
+                local find_with_tags=""
+                local find_with_group=""
+                local find_created_on=""
+                local find_modified=""
 
                 while [[ $# -ne 0 && $flag -eq 0 ]]; do
                     local sarg1="$1"
@@ -1871,10 +1895,6 @@ function _parse_args_find {
                         "--with-group")
                             find_with_group="$2"
                             shift 2
-                            ;;
-                        "--strict")
-                            flag_strict_find="y"
-                            shift
                             ;;
                         "--created-on")
                             shift
@@ -2009,7 +2029,12 @@ function _parse_args_find {
                             ;;
                     esac
                 done
-                # FIXME find note action
+                push_op "find_n"
+                push_op_args "$note_str"
+                push_op_args "$find_with_tags"
+                push_op_args "$find_with_group"
+                push_op_args "$find_created_on"
+                push_op_args "$find_modified"
                 ;;
             *)
                 eflag=1
@@ -2131,6 +2156,109 @@ function do_actions {
                 note="$v_pop_op_args"
 
                 add_note "$title" "$group" "$tags" "$note"
+                ;;
+            "list")
+                list_notes
+                ;;
+            "delete_n")
+                local v_pop_op_args=""
+                pop_op_args
+                delete_note "$v_pop_op_args"
+                ;;
+            "delete_g")
+                local v_pop_op_args=""
+                pop_op_args
+                delete_group "$v_pop_op_args"
+                ;;
+            "delete_g_ns")
+                local v_pop_op_args=""
+                pop_op_args
+                delete_group "$v_pop_op_args"
+                ;;
+            "delete_t")
+                local v_pop_op_args=""
+                pop_op_args
+                delete_tag "$v_pop_op_args"
+                ;;
+            "open")
+                local v_pop_op_args=""
+                pop_op_args
+                open_note "$v_pop_op_args"
+                ;;
+            "find_t")
+                local v_pop_op_args=""
+                pop_op_args
+                find_tags "$v_pop_op_args"
+                ;;
+            "find_g")
+                local v_pop_op_args=""
+                pop_op_args
+                find_groups "$v_pop_op_args"
+                ;;
+            "find_n")
+                local note_str=""
+                local find_with_tags=""
+                local find_with_group=""
+                local find_created_on=""
+                local find_modified=""
+
+                local v_pop_op_args=""
+                pop_op_args
+                note_str="$v_pop_op_args"
+                pop_op_args
+                find_with_tags="$v_pop_op_args"
+                pop_op_args
+                find_with_group="$v_pop_op_args"
+                pop_op_args
+                find_created_on="$v_pop_op_args"
+                pop_op_args
+                find_modified="$v_pop_op_args"
+
+                find_notes "$note_str" "$find_with_tags" "$find_with_group" "$find_created_on" "$find_modified"
+                ;;
+            "modify_t")
+                local nid=""
+                local title=""
+                local v_pop_op_args=""
+
+                pop_op_args
+                nid="$v_pop_op_args"
+                pop_op_args
+                title="$v_pop_op_args"
+                modify_title "$nid" "$title"
+                ;;
+            "modify_g")
+                local nid=""
+                local group=""
+                local v_pop_op_args=""
+
+                pop_op_args
+                nid="$v_pop_op_args"
+                pop_op_args
+                group="$v_pop_op_args"
+                modify_group "$nid" "$group"
+                ;;
+            "modify_T")
+                local nid=""
+                local tags=""
+                local v_pop_op_args=""
+
+                pop_op_args
+                nid="$v_pop_op_args"
+                pop_op_args
+                tags="$v_pop_op_args"
+                modify_tags "$nid" "$tags"
+                ;;
+            "modify_n")
+                local nid=""
+                local note=""
+                local v_pop_op_args=""
+
+                pop_op_args
+                nid="$v_pop_op_args"
+                pop_op_args
+                note="$v_pop_op_args"
+                modify_note "$nid" "$note"
                 ;;
             *)
                 log_error "No such action ('$v_pop_op') defined."
