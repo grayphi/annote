@@ -71,3 +71,9 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	         --before [date]	Filter notes that are modified before date.
 	         --after [date]		Filter notes that are modified after date.
 
+# How to install
+1. Clone the repo.
+2. Edit `annote.config` file.
+3. Run `install.sh` script
+4. To install at different location, run `install.sh <INSTALL/LOC>`.
+5. Done, verify by typing `$ annote --info`.
