@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.01"
+__VERSION__="1.02"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -1662,9 +1662,12 @@ function _parse_args_modify {
         push_op_args "$nid"
         push_op_args "$tags"
     fi  
-    push_op "modify_n"
-    push_op_args "$nid"
-    push_op_args "$note"
+    if [ "x$flag_t" = "x" ] && [ "x$flag_g" = "x" ] && \
+        [ "x$flag_T" = "x" ]; then
+        push_op "modify_n"
+        push_op_args "$nid"
+        push_op_args "$note"
+    fi
     local n2="$#"
     shift_n="$((n1-n2))"
 }
