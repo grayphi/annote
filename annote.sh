@@ -2026,6 +2026,10 @@ function do_actions {
         case "$v_pop_op" in
             "new")
                 local v_pop_op_args=""
+                local title=""
+                local group=""
+                local tags=""
+                local note=""
                 pop_op_args
                 title="$v_pop_op_args"
                 pop_op_args
@@ -2144,3 +2148,4 @@ function do_actions {
 parse_args "$@"
 initialize_conf
 do_actions
+
