@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.02"
+__VERSION__="1.03"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -944,8 +944,8 @@ function modify_title {
 function modify_note {
     local nid="$1"
     local note="$2"
-    nid="$(echo "$nid" | sed -e 's/^\s\+' -e 's/\s\+$//')"
-    note="$(echo "$note" | sed -e 's/^\s\+' -e 's/\s\+$//')"
+    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    note="$(echo "$note" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
         if [ "x$flag_append_mode" != "xy" ]; then
