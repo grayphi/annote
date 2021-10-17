@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.03"
+__VERSION__="1.06"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -314,7 +314,7 @@ function import_config {
     if [ -f "$imf" ]; then
         mkdir -p "$(dirname "$config_file")"
         touch $config_file
-        sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' -e 's/\s\+=/=/' \
+        sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
             -e 's/=\s\+/=/' -e '/^$/d' "$imf" >> "$config_file"
         log_info "Done importing conf file"
     else
@@ -324,7 +324,7 @@ function import_config {
 
 function export_config {
     local exf="$1"
-    sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' -e 's/\s\+=/=/' \
+    sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
         -e 's/=\s\+/=/' -e '/^$/d' "$config_file"  > "$exf"
     log_info "Done exporting conf file"
 }
@@ -370,7 +370,7 @@ function _conf_file {
             local key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
             local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
             _set_key "$key" "$value"
-        done < <(sed -e '/^#/d' -e 's/^\s\+//' -e 's/\s\+$//' \
+        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' \
             -e '/^$/d' $cfile)
     fi
 }   
@@ -740,6 +740,8 @@ function _list_note {
            fmt="$(echo "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
        elif [[ "$fmt" =~ \<TITLE\> ]]; then
            ntitle="$(_list_prettify_fg "$i" "$ntitle")"
+           ntitle="$(echo "$ntitle" | sed 's/\//\\\//g')"
+           ntitle="$(echo "$ntitle" | sed 's/&/\\&/g')"
            fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
        fi
     done
@@ -2026,6 +2028,10 @@ function do_actions {
         case "$v_pop_op" in
             "new")
                 local v_pop_op_args=""
+                local title=""
+                local group=""
+                local tags=""
+                local note=""
                 pop_op_args
                 title="$v_pop_op_args"
                 pop_op_args
@@ -2144,3 +2150,4 @@ function do_actions {
 parse_args "$@"
 initialize_conf
 do_actions
+
