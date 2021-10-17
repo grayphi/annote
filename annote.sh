@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.05"
+__VERSION__="1.06"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -741,6 +741,7 @@ function _list_note {
        elif [[ "$fmt" =~ \<TITLE\> ]]; then
            ntitle="$(_list_prettify_fg "$i" "$ntitle")"
            ntitle="$(echo "$ntitle" | sed 's/\//\\\//g')"
+           ntitle="$(echo "$ntitle" | sed 's/&/\\&/g')"
            fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
        fi
     done
