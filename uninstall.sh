@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 INSTALL_NAME="annote"
-INSTALLED_PATH="$(which "$INSTALL_NAME" 2> /dev/null)"
+INSTALLED_BIN="$(which "$INSTALL_NAME" 2> /dev/null)"
 
-if [ -n "$INSTALLED_PATH" ]; then
-    rm -f $INSTALLED_PATH/$INSTALL_NAME
+if [ -n "$INSTALLED_BIN" ]; then
+    rm -f "$INSTALLED_BIN"
     HOME_DIR="$(realpath ~)/.annote"
     CONF_FILE="$HOME_DIR/annote.config"
     if [ -d "$HOME_DIR" ] && [ -f "$CONF_FILE" ]; then
