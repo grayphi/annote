@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.06"
+__VERSION__="1.07"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -40,6 +40,7 @@ editor="vi"
 editor_gui="gedit"
 list_delim="  "
 list_fmt="<SNO><DELIM><NID><DELIM><TITLE>"
+archived="ARCHIVED"
 
 declare -A mutex_ops=()
 declare -A mutex_ops_args=()
@@ -59,11 +60,13 @@ flag_modify_tag_mode=""     # 'o' --> overwrite, 'd' -->delete, 'a' or empty app
 flag_search_mode=""         # 't' --> title only, 'n' --> note only, blank to search on both
 flag_strict_find=""         # 'y' --> to matches strictly, blank for anywhere search
 flag_list_find=""           # 'y' --> to show list of notes not count, blank for count
+flag_show_archived=""       # 'y' --> include archived notes into list/find, blank to exclude
 flag_debug_mutex_ops=""     # 'y' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
 ERR_DATE=2
 ERR_MUTEX_OPTS=3
+ERR_ARCH=4
 
 function __cont {
     echo "$(echo "$1" | sed -e "s/${p_reset/[/\\[}/$p_reset$2/g")"
@@ -207,6 +210,7 @@ function help {
     log_plain "${idnt_l1}$(as_bold " --gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
     log_plain "${idnt_l1}$(as_bold " --no-pretty")${fsep_3}Do not prettify output."
     log_plain "${idnt_l1}$(as_bold " --stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
+    log_plain "${idnt_l1}$(as_bold " --inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
     log_plain "${idnt_l1}$(as_bold " --delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
     log_plain "${idnt_l1}$(as_bold " --format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
 
@@ -263,6 +267,10 @@ function help {
     log_plain "${idnt_sc2}$(as_bold "--last-edit") <$(as_bold "$(as_light_green "date")")>${fsep_1}Filter notes with modified on $(as_bold "$(as_light_green "date")"). $(as_bold "$(as_light_green "date")") and $(as_dim "sub-options") are mutually exclusive." 
     log_plain "${idnt_sc3}$(as_bold "--before") [$(as_bold "$(as_light_green "date")")]${fsep_1}Filter notes that are modified before $(as_bold "$(as_light_green "date")")."
     log_plain "${idnt_sc3}$(as_bold "--after") [$(as_bold "$(as_light_green "date")")]${fsep_2}Filter notes that are modified after $(as_bold "$(as_light_green "date")")."
+
+    log_plain "${idnt_l1}$(as_bold " --archive") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Archive note $(as_bold "$(as_light_green "nid")")(id)."
+    log_plain "${idnt_l1}$(as_bold " --unarchive") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Unarchive note $(as_bold "$(as_light_green "nid")")(id)."
+    log_plain "${idnt_l1}$(as_bold " --list-archive")${fsep_3}List archived notes."
 }
 
 function _info {
@@ -286,9 +294,10 @@ function _info {
     log_plain "\n$(as_bold "[$(as_yellow "EXIT STATUS")]")"
     log_plain "\t$(as_bold "annote") exits with status $(as_bold "0") as success, greater than $(as_bold "0") if errors occur."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "0") means success."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "1") means 'configuration' related error."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "2") means 'date' related error."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "3") means mutex options provided."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_CONFIG") means 'configuration' related error."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_DATE") means 'date' related error."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_MUTEX_OPTS") means mutex options provided."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_ARCH") means error during archive/unarchive."
 
     log_plain "\n$(as_bold "[$(as_yellow "AUTHORS")]")"
     log_plain "\tDinesh Saini <https://github.com/dineshsaini/>"
@@ -759,6 +768,9 @@ function _list_notes {
     on_black "$(make_header)"
     if [ -n "$nids" ]; then
         for n in `echo "$nids" | tr ',' '\n'`; do
+            if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
+                continue;
+            fi
             c="$(( ++c ))"
             l="$(_list_note "$c" "$n")"
 
@@ -766,6 +778,9 @@ function _list_notes {
         done
     else
         for n in `echo "$(get_all_notes)" | tr ',' '\n'`; do
+            if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
+                continue;
+            fi
             c="$(( ++c ))"
             l="$(_list_note "$c" "$n")"
 
@@ -1352,6 +1367,53 @@ function find_notes {
     if [ -n "$notes" ]; then
         list_notes "$notes"
     fi
+}
+
+function is_archived {
+    local nid="$1"
+    local flag="false"
+    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    if [ -n "$nid" ] && $(note_exists "$nid"); then
+        local tags="$(get_note_tags "$nid")"
+        local regex=",$archived,"
+        if [[ ",$tags," =~ $regex ]]; then
+            flag="true"
+        fi
+    fi
+    echo "$flag"
+}
+
+function archive_note {
+    local nid="$1"
+    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    if [ -n "$nid" ] && $(note_exists "$nid"); then
+        if ! $(is_archived "$nid"); then
+            add_note_tags "$nid" "$archived"
+        fi
+    else
+        log_error "Invalid note id ('$nid') provided."
+        exit $ERR_ARCH
+    fi
+}
+
+function unarchive_note {
+    local nid="$1"
+    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    if [ -n "$nid" ] && $(note_exists "$nid"); then
+        if $(is_archived "$nid"); then
+            delete_note_tags "$nid" "$archived"
+        fi
+    else
+        log_error "Invalid note id ('$nid') provided."
+        exit $ERR_ARCH
+    fi
+}
+
+function list_archive {
+    local v_old="$flag_list_find"
+    flag_list_find="y"
+    list_tags "$archived"
+    flag_list_find="$v_old"
 }
 
 function push_op {
@@ -1970,6 +2032,9 @@ function parse_args {
             "--stdout")
                 flag_no_pager="y"
                 ;;
+            "--inc-arch")
+                flag_show_archived="y"
+                ;;
             "--delim")
                 list_delim="$1"
                 shift 
@@ -2005,6 +2070,21 @@ function parse_args {
             "-m"|"--modify"|"--edit")
                 _parse_args_modify "$@"
                 shift $shift_n
+                ;;
+            "--archive")
+                local nid="$1"
+                shift
+                push_op "arch"
+                push_op_args "$nid"
+                ;;
+            "--unarchive")
+                local nid="$1"
+                shift
+                push_op "un_arch"
+                push_op_args "$nid"
+                ;;
+            "--list-archive")
+                push_op "list_arch"
                 ;;
             *)
                 log_error "Unknow option '$arg', check help for details."
@@ -2138,6 +2218,23 @@ function do_actions {
                 pop_op_args
                 note="$v_pop_op_args"
                 modify_note "$nid" "$note"
+                ;;
+            "arch")
+                local nid=""
+                local v_pop_op_args=""
+                pop_op_args
+                nid="$v_pop_op_args"
+                archive_note "$nid"
+                ;;
+            "un_arch")
+                local nid=""
+                local v_pop_op_args=""
+                pop_op_args
+                nid="$v_pop_op_args"
+                unarchive_note "$nid"
+                ;;
+            "list_arch")
+                list_archive
                 ;;
             *)
                 log_error "No such action ('$v_pop_op') defined."
