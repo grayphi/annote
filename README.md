@@ -21,6 +21,7 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	 --gui				Use GUI Editor when editing note. Effects new, and modify actions.
 	 --no-pretty			Do not prettify output.
 	 --stdout			Do not use pager, just put everything on stdout.
+	 --inc-arch			Include archived notes, default is to exclude. Effects list and find actions.
 	 --delim [delimiter]		Use delimiter to delimit the list output fields.
 	 --format [format]		Create custom note listing format with <SNO>,<NID>,<TITLE>,<TAGS>,<GROUP>,<DELIM>.
 	 -C|--config			Manages config, if specified, then atleast one option has to be supplied.
@@ -65,11 +66,14 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	      --with-tags [tags]	Filter notes with tags.
 	      --with-group [group]	Filter notes with group.
 	      --created-on <date>	Filter notes with created on date. date and sub-options are mutually exclusive.
-	         --before [date]	Filter notes that are created before date.
-	         --after [date]		Filter notes that are created after date.
+		 --before [date]	Filter notes that are created before date.
+		 --after [date]		Filter notes that are created after date.
 	      --last-edit <date>	Filter notes with modified on date. date and sub-options are mutually exclusive.
-	         --before [date]	Filter notes that are modified before date.
-	         --after [date]		Filter notes that are modified after date.
+		 --before [date]	Filter notes that are modified before date.
+		 --after [date]		Filter notes that are modified after date.
+	 --archive [nid]		Archive note nid(id).
+	 --unarchive [nid]		Unarchive note nid(id).
+	 --list-archive			List archived notes.
 
 # How to install
 1. Clone the repo.
