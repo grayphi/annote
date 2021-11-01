@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.07"
+__VERSION__="1.09"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -322,7 +322,7 @@ function import_config {
     local imf="$1"
     if [ -f "$imf" ]; then
         mkdir -p "$(dirname "$config_file")"
-        touch $config_file
+        touch "$config_file"
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
             -e 's/=\s\+/=/' -e '/^$/d' "$imf" >> "$config_file"
         log_info "Done importing conf file"
@@ -380,7 +380,7 @@ function _conf_file {
             local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
             _set_key "$key" "$value"
         done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' \
-            -e '/^$/d' $cfile)
+            -e '/^$/d' "$cfile")
     fi
 }   
 
@@ -398,7 +398,7 @@ function store_kv_pair {
     local kv="$1"
     local kv="$(echo "$kv" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     local k="$(echo "$kv" | cut -d= -f1 | sed -e 's/\s\+$//')"
-    local v="$(echo $kv | cut -d= -f2- | sed -e 's/^\s\+//')"
+    local v="$(echo "$kv" | cut -d= -f2- | sed -e 's/^\s\+//')"
     if [ -n "$k" ]; then
         kv_conf_var["$k"]="$v"
     fi
@@ -437,7 +437,7 @@ function note_exists {
 
 function tag_exists {
     local tname="$1"
-    local c="$(ls $tags_loc | grep "^$tname$" | wc -l)"
+    local c="$(ls "$tags_loc" | grep "^$tname$" | wc -l)"
     if [[ "$c" -gt 0 ]]; then
         echo "true"
     else
@@ -481,7 +481,7 @@ function get_tags {
 function get_group_loc {
     local group="$1"
     local gl="$groups_loc/$(echo "$group" | sed 's/\./\//g')"
-    mkdir -p $gl
+    mkdir -p "$gl"
     echo "$gl"
 }
 
@@ -546,7 +546,7 @@ function get_note_title {
     local nid="$1"
     local tf="$notes_loc/$nid/$nid.title"
     if [ -f "$tf" ]; then
-        echo "$(cat $tf)"
+        echo "$(cat "$tf")"
     fi
 }
 
@@ -563,7 +563,7 @@ function get_note_tags {
     local nid="$1"
     local tf="$notes_loc/$nid/$nid.tags"
     if [ -f "$tf" ]; then
-        echo "$(cat $tf | tr '\n' ',' | sed 's/,$//')"
+        echo "$(cat "$tf" | tr '\n' ',' | sed 's/,$//')"
     fi
 }
 
@@ -571,7 +571,7 @@ function get_note_group {
     local nid="$1"
     local gf="$notes_loc/$nid/$nid.group"
     if [ -f "$gf" ]; then
-        echo "$(cat $gf)"
+        echo "$(cat "$gf")"
     fi
 }
 
@@ -584,7 +584,7 @@ function change_note_group {
         local ngf="$notes_loc/$nid/$nid.group"
         local gl="$(get_group_loc "$g_old")"
         local gf="$gl/notes.lnk"
-        sed -i -e "/^$nid$/d" $gf
+        sed -i -e "/^$nid$/d" "$gf"
         gl="$(get_group_loc "$g_new")"
         gf="$gl/notes.lnk"
         echo "$nid" >> "$gf"
@@ -597,8 +597,8 @@ function update_metadata {
     local key="$2"
     local value="$3"
     local mfile="$notes_loc/$nid/$nid.metadata"
-    sed -i -e "/^$key:.*$/d" $mfile
-    echo "$key: $value" >> $mfile
+    sed -i -e "/^$key:.*$/d" "$mfile"
+    echo "$key: $value" >> "$mfile"
 }
 
 function get_metadata {
@@ -607,7 +607,7 @@ function get_metadata {
     local value=""
     if $(note_exists "$nid"); then
         local mfile="$notes_loc/$nid/$nid.metadata"
-        value="$(cat $mfile | grep "^$key: " | sed -e "s/^$key: //" )"
+        value="$(cat "$mfile" | grep "^$key: " | sed -e "s/^$key: //" )"
     fi
     echo "$value"
 }
@@ -758,7 +758,7 @@ function _list_note {
 }
 
 function get_all_notes {
-    echo "$(ls $notes_loc | sort | tr '\n' ',' | sed 's/,$//')"
+    echo "$(ls "$notes_loc" | sort | tr '\n' ',' | sed 's/,$//')"
 }
 
 function _list_notes {
@@ -831,7 +831,7 @@ function list_groups {
     local gl="$db_loc/groups"
     local sgl="$(echo "$gl" | sed 's/\//\\\//g')"
     if [ -z "$groups" ]; then
-        groups="$(find $gl -type f -name 'notes.lnk' -print | sed \
+        groups="$(find "$gl" -type f -name 'notes.lnk' -print | sed \
             -e "s/^$sgl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
             tr '\n' ',' | sed 's/,$//')"
     else
@@ -853,7 +853,7 @@ function list_groups {
         local gf="$(get_group_loc "$g")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$gf" ]; then
-                for n in `cat $gf`; do
+                for n in `cat "$gf"`; do
                     local msg="$(get_note_title "$n")"
                     build_row $((++c)) "$g" "$n" "$msg"
                 done
@@ -876,7 +876,7 @@ function list_tags {
     local tl="$db_loc/tags"
     local stl="$(echo "$tl" | sed 's/\//\\\//g')"
     if [ -z "$tags" ]; then
-        tags="$(find $tl -type f -name 'notes.lnk' -print | sed \
+        tags="$(find "$tl" -type f -name 'notes.lnk' -print | sed \
             -e "s/^$stl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
             tr '\n' ',' | sed 's/,$//')"
     else
@@ -898,7 +898,7 @@ function list_tags {
         local tf="$(get_tag_loc "$t")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$tf" ]; then
-                for n in `cat $tf`; do
+                for n in `cat "$tf"`; do
                     local msg="$(get_note_title "$n")"
                     build_row $((++c)) "$t" "$n" "$msg"
                 done
@@ -1034,7 +1034,7 @@ function add_note_tags {
         -e 's/^,//' -e 's/,$//')"
     if [ -n "$n_tags" ]; then
         _delete_note_tag "$nid" "$def_tag"
-        for t in `echo $n_tags | tr ',' '\n'`; do
+        for t in `echo "$n_tags" | tr ',' '\n'`; do
             _add_note_tag "$nid" "$t"
         done
     fi
@@ -1056,7 +1056,7 @@ function delete_note_tags {
     d_tags="$(echo ",$d_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
         -e 's/^,//' -e 's/,$//')"
     if [ -n "$d_tags" ]; then
-        for t in `echo $d_tags | tr ',' '\n'`; do
+        for t in `echo "$d_tags" | tr ',' '\n'`; do
             _delete_note_tag "$nid" "$t"
         done
     fi
@@ -1143,7 +1143,7 @@ function delete_tag {
     if [ -n "$tag" ] && $(tag_exists "$tag"); then
         local tf="$(get_tag_loc "$tag")"
         local tnf="$tf/notes.lnk"
-        for nid in `cat $tnf`; do
+        for nid in `cat "$tnf"`; do
             delete_note_tags "$nid" "$tag"
         done
         rm -rf "$tf"
@@ -1156,7 +1156,7 @@ function get_subgroups {
     if $(group_exists "$grp"); then
         local gl="$(get_group_loc "$grp")"
         local gsl="$(echo "$groups_loc" | sed 's/\//\\\//g')"
-        sgrps="$(find $gl -mindepth 1 -type d | sed -e "s/^$gsl\///" \
+        sgrps="$(find "$gl" -mindepth 1 -type d | sed -e "s/^$gsl\///" \
             -e 's/\//./g' | tr '\n' ',' | sed 's/,$//')"
     fi
     echo "$sgrps"
@@ -1171,7 +1171,7 @@ function delete_group {
             local gl="$(get_group_loc "$cg")"
             local nf="$gl/notes.lnk"
             if [ -f "$nf" ]; then 
-                for nid in `cat $nf`; do
+                for nid in `cat "$nf"`; do
                     if [ "x$flag_nosafe_grpdel" = "xy" ]; then
                         delete_note "$nid"
                     else
@@ -1193,7 +1193,7 @@ function find_tags {
         apat=""
     fi
     if [ -n "$tpat" ]; then
-        tags="$(find $tags_loc  -mindepth 1 -maxdepth 1 -type d \
+        tags="$(find "$tags_loc"  -mindepth 1 -maxdepth 1 -type d \
             -name "$apat$tpat$apat" -print | sed -e "s/^$stl\///" \
             -e 's/\/$//' | tr '\n' ',' | sed 's/,$//')"
     fi
@@ -1213,7 +1213,7 @@ function find_groups {
     fi
     gpat="$(echo "$gpat" | sed 's/\./\//g')"
     if [ -n "$gpat" ]; then
-        groups="$(find $groups_loc  -mindepth 1 -type d \
+        groups="$(find "$groups_loc"  -mindepth 1 -type d \
             -path "$groups_loc/$gpat" -print | sed -e "s/^$sgl\///" \
             -e 's/\/$//' -e 's/\//./g' | tr '\n' ',' | sed 's/,$//')"
     fi
@@ -1439,7 +1439,7 @@ function pop_op {
     local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | head -n1)"
     if [ "x$pos" != "x" ]; then
         v_pop_op="${mutex_ops[$pos]}"
-        unset mutex_ops[$pos]
+        unset mutex_ops["$pos"]
     fi
 }
 
@@ -1449,7 +1449,7 @@ function pop_op_args {
         head -n1)"
     if [ "x$pos" != "x" ]; then
         v_pop_op_args="${mutex_ops_args[$pos]}"
-        unset mutex_ops_args[$pos]
+        unset mutex_ops_args["$pos"]
     fi
 }
 
@@ -1472,27 +1472,31 @@ function _parse_args_config {
         "-i"|"--import")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             import_config "$sarg2"
             exit 0
             ;;
         "-x"|"--export")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             export_config "$sarg2"
             exit 0
             ;;
         "-u"|"--use")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             u_conf_file="$sarg2"
             ;;
         "-s"|"--set")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             store_kv_pair "$sarg2"
             ;;
         *)
@@ -1520,15 +1524,18 @@ function _parse_args_new {
         case "$sarg1" in 
             "-t"|"--title")
                 title="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-g"|"--group")
                 group="$2"
-                shift 2
+                shift
+                shift
                 ;;
             "-T"|"--tags")
                 tags="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-r"|"--record")
                 flag_new_arg4="r"
@@ -1537,12 +1544,14 @@ function _parse_args_new {
             "-c"|"--content")
                 flag_new_arg4="c"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-f"|"--file")
                 flag_new_arg4="f"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             *)
                 eflag=1
@@ -1593,26 +1602,30 @@ function _parse_args_delete {
         case "$sarg1" in 
             "--note")
                 nid="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_n"
                 push_op_args "$nid"
                 ;;
             "--group")
                 group="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_g"
                 push_op_args "$group"
                 ;;
             "--group-nosafe")
                 flag_nosafe_grpdel="y"
                 group="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_g_ns"
                 push_op_args "$group"
                 ;;
             "--tag")
                 tag="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_t"
                 push_op_args "$tag"
                 ;;
@@ -1643,12 +1656,14 @@ function _parse_args_modify {
             "-t"|"--title")
                 flag_t="y"
                 title="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-g"|"--group")
                 flag_g="y"
                 group="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-T"|"--tags")
                 shift
@@ -1689,12 +1704,14 @@ function _parse_args_modify {
             "-c"|"--content")
                 flag_modify_arg2="c"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-f"|"--file")
                 flag_modify_arg2="f"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-O"|"--no-append"|"--overwrite")
                 flag_append_mode=""
@@ -1846,11 +1863,13 @@ function _parse_args_find {
                             ;;
                         "--with-tags")
                             find_with_tags="$2"
-                            shift 2
+                            shift 
+                            shift 
                             ;;
                         "--with-group")
                             find_with_group="$2"
-                            shift 2
+                            shift 
+                            shift 
                             ;;
                         "--created-on")
                             shift
@@ -1868,7 +1887,8 @@ function _parse_args_find {
                                             exit $ERR_DATE 
                                         fi
                                         bdate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         bdate="$(parse_date "$bdate")"
                                         if [ -z "$bdate" ]; then
                                             log_error "Enter valid '--before' date, check help for details."
@@ -1881,7 +1901,8 @@ function _parse_args_find {
                                             exit  $ERR_DATE
                                         fi
                                         adate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         adate="$(parse_date "$adate")"
                                         if [ -z "$adate" ]; then
                                             log_error "Enter valid '--after' date, check help for details."
@@ -1889,7 +1910,7 @@ function _parse_args_find {
                                         fi
                                         ;;
                                     *)
-                                        if [ -z "$adate"  && -z "$bdate" ] && [[ $dflag -eq 0 ]]; then
+                                        if [[ -z "$adate"  && -z "$bdate" ]] && [[ $dflag -eq 0 ]]; then
                                             shift
                                             dflag=1
                                             cdate="$sarg2"
@@ -1925,7 +1946,8 @@ function _parse_args_find {
                                             exit $ERR_DATE 
                                         fi
                                         bdate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         bdate="$(parse_date "$bdate")"
                                         if [ -z "$bdate" ]; then
                                             log_error "Enter valid '--before' date, check help for details."
@@ -1938,7 +1960,8 @@ function _parse_args_find {
                                             exit  $ERR_DATE
                                         fi
                                         adate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         adate="$(parse_date "$adate")"
                                         if [ -z "$adate" ]; then
                                             log_error "Enter valid '--after' date, check help for details."
@@ -1946,7 +1969,7 @@ function _parse_args_find {
                                         fi
                                         ;;
                                     *)
-                                        if [ -z "$adate"  && -z "$bdate" ] && [[ $dflag -eq 0 ]]; then
+                                        if [[ -z "$adate"  && -z "$bdate" ]] && [[ $dflag -eq 0 ]]; then
                                             shift
                                             dflag=1
                                             cdate="$sarg2"
