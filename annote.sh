@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.08"
+__VERSION__="1.09"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -1472,27 +1472,31 @@ function _parse_args_config {
         "-i"|"--import")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             import_config "$sarg2"
             exit 0
             ;;
         "-x"|"--export")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             export_config "$sarg2"
             exit 0
             ;;
         "-u"|"--use")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             u_conf_file="$sarg2"
             ;;
         "-s"|"--set")
             oflag=1
             local sarg2="$2"
-            shift 2
+            shift 
+            shift 
             store_kv_pair "$sarg2"
             ;;
         *)
@@ -1520,15 +1524,18 @@ function _parse_args_new {
         case "$sarg1" in 
             "-t"|"--title")
                 title="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-g"|"--group")
                 group="$2"
-                shift 2
+                shift
+                shift
                 ;;
             "-T"|"--tags")
                 tags="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-r"|"--record")
                 flag_new_arg4="r"
@@ -1537,12 +1544,14 @@ function _parse_args_new {
             "-c"|"--content")
                 flag_new_arg4="c"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-f"|"--file")
                 flag_new_arg4="f"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             *)
                 eflag=1
@@ -1593,26 +1602,30 @@ function _parse_args_delete {
         case "$sarg1" in 
             "--note")
                 nid="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_n"
                 push_op_args "$nid"
                 ;;
             "--group")
                 group="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_g"
                 push_op_args "$group"
                 ;;
             "--group-nosafe")
                 flag_nosafe_grpdel="y"
                 group="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_g_ns"
                 push_op_args "$group"
                 ;;
             "--tag")
                 tag="$2"
-                shift 2
+                shift 
+                shift 
                 push_op "delete_t"
                 push_op_args "$tag"
                 ;;
@@ -1643,12 +1656,14 @@ function _parse_args_modify {
             "-t"|"--title")
                 flag_t="y"
                 title="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-g"|"--group")
                 flag_g="y"
                 group="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-T"|"--tags")
                 shift
@@ -1689,12 +1704,14 @@ function _parse_args_modify {
             "-c"|"--content")
                 flag_modify_arg2="c"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-f"|"--file")
                 flag_modify_arg2="f"
                 note="$2"
-                shift 2
+                shift 
+                shift 
                 ;;
             "-O"|"--no-append"|"--overwrite")
                 flag_append_mode=""
@@ -1846,11 +1863,13 @@ function _parse_args_find {
                             ;;
                         "--with-tags")
                             find_with_tags="$2"
-                            shift 2
+                            shift 
+                            shift 
                             ;;
                         "--with-group")
                             find_with_group="$2"
-                            shift 2
+                            shift 
+                            shift 
                             ;;
                         "--created-on")
                             shift
@@ -1868,7 +1887,8 @@ function _parse_args_find {
                                             exit $ERR_DATE 
                                         fi
                                         bdate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         bdate="$(parse_date "$bdate")"
                                         if [ -z "$bdate" ]; then
                                             log_error "Enter valid '--before' date, check help for details."
@@ -1881,7 +1901,8 @@ function _parse_args_find {
                                             exit  $ERR_DATE
                                         fi
                                         adate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         adate="$(parse_date "$adate")"
                                         if [ -z "$adate" ]; then
                                             log_error "Enter valid '--after' date, check help for details."
@@ -1925,7 +1946,8 @@ function _parse_args_find {
                                             exit $ERR_DATE 
                                         fi
                                         bdate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         bdate="$(parse_date "$bdate")"
                                         if [ -z "$bdate" ]; then
                                             log_error "Enter valid '--before' date, check help for details."
@@ -1938,7 +1960,8 @@ function _parse_args_find {
                                             exit  $ERR_DATE
                                         fi
                                         adate="$2"
-                                        shift 2
+                                        shift 
+                                        shift 
                                         adate="$(parse_date "$adate")"
                                         if [ -z "$adate" ]; then
                                             log_error "Enter valid '--after' date, check help for details."
