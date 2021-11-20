@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.09"
+__VERSION__="1.10"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -724,6 +724,9 @@ function make_header {
            fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
        fi
     done
+    if [ "x$flag_no_pretty" != "xy" ]; then
+        fmt="$(on_black "$fmt")"
+    fi
     echo -e "$fmt"
 }
 
@@ -765,7 +768,7 @@ function _list_notes {
     local nids="$1"
     local c=0
     local l=""
-    on_black "$(make_header)"
+    make_header
     if [ -n "$nids" ]; then
         for n in `echo "$nids" | tr ',' '\n'`; do
             if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
@@ -807,7 +810,10 @@ function build_header {
         fmt="$fmt$arg$list_delim"
         c="$(( ++c ))"
     done
-    echo -e "$(on_black "$fmt")"
+    if [ "x$flag_no_pretty" != "xy" ]; then
+        fmt="$(on_black "$fmt")"
+    fi
+    echo -e "$fmt"
 }
 
 function build_row {
