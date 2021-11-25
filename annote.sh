@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.10"
+__VERSION__="1.11"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -2065,11 +2065,11 @@ function parse_args {
                 flag_show_archived="y"
                 ;;
             "--delim")
-                list_delim="$1"
+                store_kv_pair "list_delim=$1"
                 shift 
                 ;;
             "--format")
-                list_fmt="$1"
+                store_kv_pair "list_format=$1"
                 shift 
                 ;;
             "-C"|"--config")
