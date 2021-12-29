@@ -29,6 +29,7 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	    -x|--export [file]		Export config to file.
 	    -u|--use [file]		Use file as current instance's config.
 	    -s|--set ['key=value']	Overrides key in current instance, repeat set to override more keys.
+	 -D|--db [dbl_key]		Use db 'dbl_key' from config file as current instance's db location.
 	 -n|--new			Add new Note. If no sub options suplied then this will assume defaults or ask.
 	    -t|--title [title]		Title of note. (required)
 	    -g|--group [group]		Group for note (use '.' for subgroups). Uses default group, if not specified.
