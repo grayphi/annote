@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.11"
+__VERSION__="1.12"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -31,6 +31,8 @@ config_file="$(realpath ~)/.annote/annote.config"
 u_conf_file=""
 declare -A kv_conf_var=()
 db_loc="$(realpath ~)/.annote/db"
+declare -A db_loc_var=()
+db_loc_key=""
 notes_loc="$db_loc/notes"
 groups_loc="$db_loc/groups"
 tags_loc="$db_loc/tags"
@@ -67,6 +69,7 @@ ERR_CONFIG=1
 ERR_DATE=2
 ERR_MUTEX_OPTS=3
 ERR_ARCH=4
+ERR_ARGS=5
 
 function __cont {
     echo "$(echo "$1" | sed -e "s/${p_reset/[/\\[}/$p_reset$2/g")"
@@ -204,7 +207,7 @@ function help {
     log_plain "${idnt_l1}$(as_bold " --info")${fsep_4}Show information and exit."
     log_plain "${idnt_l1}$(as_bold " -V")|$(as_bold "--version")${fsep_3}Show version and exit."
     log_plain "${idnt_l1}$(as_bold " -v")|$(as_bold "--verbose")${fsep_3}Be verbose."
-    log_plain "${idnt_l1}$(as_bold " -D")|$(as_bold "--silent")${fsep_3}Be silent, don't ask questions, use $(as_dim "default") values whenever required."
+    log_plain "${idnt_l1}$(as_bold " -S")|$(as_bold "--silent")${fsep_3}Be silent, don't ask questions, use $(as_dim "default") values whenever required."
     log_plain "${idnt_l1}$(as_bold " -q")|$(as_bold "--quite")${fsep_3}Disable warning messages to print."
     log_plain "${idnt_l1}$(as_bold " --strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
     log_plain "${idnt_l1}$(as_bold " --gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
@@ -220,6 +223,8 @@ function help {
     log_plain "${idnt_sc1}$(as_bold " -u")|$(as_bold "--use") [$(as_bold "$(as_light_green "file")")]${fsep_2}Use $(as_bold "$(as_light_green "file")") as current instance's config."
     log_plain "${idnt_sc1}$(as_bold " -s")|$(as_bold "--set") [$(as_bold "$(as_light_green "'key=value'")")]${fsep_1}Overrides $(as_bold "$(as_light_green "key")") in current instance, repeat $(as_bold "set") to override more $(as_bold "$(as_light_green "key")")s."
     
+    log_plain "${idnt_l1}$(as_bold " -D")|$(as_bold "--db") [$(as_bold "$(as_light_green "dbl_key")")]${fsep_2}Use db '$(as_bold "$(as_light_green "dbl_key")")' from config file as current instance's db location."
+
     log_plain "${idnt_l1}$(as_bold " -n")|$(as_bold "--new")${fsep_3}Add new Note. If no sub options suplied then this will assume $(as_dim "defaults") or $(as_dim "ask")."
     log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Title of note. (required)"
     log_plain "${idnt_sc1}$(as_bold " -g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Group for note (use '$(as_bold ".")' for subgroups). Uses $(as_dim "default") group, if not specified."
@@ -298,6 +303,7 @@ function _info {
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_DATE") means 'date' related error."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_MUTEX_OPTS") means mutex options provided."
     log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_ARCH") means error during archive/unarchive."
+    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_ARGS") means arguments related error."
 
     log_plain "\n$(as_bold "[$(as_yellow "AUTHORS")]")"
     log_plain "\tDinesh Saini <https://github.com/dineshsaini/>"
@@ -351,6 +357,9 @@ function _set_key {
             ;;
         "db_loc")
             db_loc="$value"
+            ;;
+        "dbl_key_"*)
+            db_loc_var["$key"]="$value"
             ;;
         "editor")
             editor="$value"
@@ -416,6 +425,16 @@ function initialize_conf {
     _load_sys_conf
     _load_user_conf
     _set_keys_conf
+    if [ -n "$db_loc_key" ]; then
+        local v_dbl="${db_loc_var["dbl_key_$db_loc_key"]}"
+        if [ -n "$v_dbl" ]; then
+            db_loc="$v_dbl"
+        else
+            log_error "Missing key('dbl_key_$db_loc_key'), or it's value for specified db('$db_loc_key')."
+            exit $ERR_CONFIG
+        fi
+    fi
+
     notes_loc="$db_loc/notes"
     groups_loc="$db_loc/groups"
     tags_loc="$db_loc/tags"
@@ -1508,7 +1527,7 @@ function _parse_args_config {
         *)
             if [[ $oflag -ne 1 ]]; then
                 log_error "No '--config' options found, check help for details."
-                exit $ERR_CONFIG
+                exit $ERR_ARGS
             fi
             eflag=1
             ;;
@@ -2043,7 +2062,7 @@ function parse_args {
             "-v"|"--verbose")
                 flag_verbose="y"
                 ;;
-            "-D"|"--silent")
+            "-S"|"--silent")
                 flag_no_ask="y"
                 ;;
             "-q"|"--quite")
@@ -2075,6 +2094,14 @@ function parse_args {
             "-C"|"--config")
                 _parse_args_config "$@"
                 shift $shift_n
+                ;;
+            "-D"|"--db")
+                if [[ $# -lt 1 ]]; then
+                    log_error "Missing argument for '--db'."
+                    exit $ERR_ARGS
+                fi
+                db_loc_key="$1"
+                shift
                 ;;
             "-n"|"--new")
                 _parse_args_new "$@"
@@ -2117,7 +2144,7 @@ function parse_args {
                 ;;
             *)
                 log_error "Unknow option '$arg', check help for details."
-                exit 0;
+                exit $ERR_ARGS;
                 ;;
         esac
     done
