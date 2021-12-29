@@ -2097,7 +2097,7 @@ function parse_args {
                 ;;
             "-D"|"--db")
                 if [[ $# -lt 1 ]]; then
-                    log_error "Missing argument for '--db'."
+                    log_error "Missing argument for '$arg'."
                     exit $ERR_ARGS
                 fi
                 db_loc_key="$1"
