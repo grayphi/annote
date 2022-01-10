@@ -43,8 +43,8 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	   --group [gname]		Delete group gname(fully qualified name), and assign default group to notes.
 	   --group-nosafe [gname]	Delete group gname(fully qualified name), also deletes the notes belongs to it.
 	   --tag [tname]		Delete tag tname, assign default tag, if this was only tag to that note.
-	 -o|--open [nid]		Open note nid(id) in editor.
-	   --no-edit			Use pager instead of editor to open.
+	 -o|--open [nid]		Open note nid(id) in Pager.
+	   --edit			Use Editor instead of Pager to open.
 	 -m|--modify|--edit [nid]	Edit note nid(id), if none from -r,-c,-f are present, then open note with editor.
 	    -t|--title [title]		Modify title of note.
 	    -g|--group [group]		Modify group of note (use '.' for subgroups).
