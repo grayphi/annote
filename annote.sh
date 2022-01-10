@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.12"
+__VERSION__="1.13"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -57,7 +57,7 @@ flag_no_ask=""              # 'y' --> no ask, empty to ask
 flag_no_pretty=""           # 'y' --> no pretty, empty to prettify
 flag_no_pager=""            # 'y' --> no pager, empty to use pager
 flag_nosafe_grpdel=""       # 'y' --> enable nosafe, empty for safe
-flag_open_noedit=""         # 'y' --> view only pager, empty to edit
+flag_open_edit=""           # 'y' --> edit, empty to view only pager
 flag_modify_tag_mode=""     # 'o' --> overwrite, 'd' -->delete, 'a' or empty append
 flag_search_mode=""         # 't' --> title only, 'n' --> note only, blank to search on both
 flag_strict_find=""         # 'y' --> to matches strictly, blank for anywhere search
@@ -241,8 +241,8 @@ function help {
     log_plain "${idnt_sc1}$(as_bold "--group-nosafe") [$(as_bold "$(as_light_green "gname")")]${fsep_1}Delete group $(as_bold "$(as_light_green "gname")")(fully qualified name), also deletes the notes belongs to it."
     log_plain "${idnt_sc1}$(as_bold "--tag") [$(as_bold "$(as_light_green "tname")")]${fsep_2}Delete tag $(as_bold "$(as_light_green "tname")"), assign $(as_dim "default") tag, if this was only tag to that note."
 
-    log_plain "${idnt_l1}$(as_bold " -o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Open note $(as_bold "$(as_light_green "nid")")(id) in editor."
-    log_plain "${idnt_sc1}$(as_bold "--no-edit")${fsep_3}Use pager instead of editor to open."
+    log_plain "${idnt_l1}$(as_bold " -o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Open note $(as_bold "$(as_light_green "nid")")(id) in Pager."
+    log_plain "${idnt_sc1}$(as_bold "--edit")${fsep_3}Use Editor instead of Pager to open."
     
     log_plain "${idnt_l1}$(as_bold " -m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note $(as_bold "$(as_light_green "nid")")(id), if none from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") are present, then open note with editor."
     log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Modify title of note."
@@ -314,7 +314,7 @@ function _info {
 
 function info {
     if [ "x$flag_no_pager" = "x" ]; then
-        _info | less -R
+        _info | less -IR
     else
         _info 
     fi
@@ -334,6 +334,7 @@ function import_config {
         log_info "Done importing conf file"
     else
         log_error "Error while importing"
+        exit $ERR_CONFIG
     fi
 }
 
@@ -815,7 +816,7 @@ function list_notes {
         if [ "x$flag_no_pager" = "xy" ]; then
             _list_notes "$1"
         else
-            _list_notes "$1" | less -R
+            _list_notes "$1" | less -IR
         fi
 }
 
@@ -949,14 +950,14 @@ function open_note {
         if [ -f "$nf" ]; then
             if [ "x$flag_no_pager" = "xy" ]; then
                 cat "$nf"
-            elif [ "x$flag_open_noedit" = "xy" ]; then
-                less "$nf"
-            else
+            elif [ "x$flag_open_edit" = "xy" ]; then
                 if [ "x$flag_gui_editor" = "xy" ]; then
                     $editor_gui "$nf"
                 else
                     $editor "$nf"
                 fi
+            else
+                less -IR "$nf"
             fi
         fi
     fi
@@ -1786,8 +1787,8 @@ function _parse_args_open {
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
-            "--no-edit")
-                flag_open_noedit="y"
+            "--edit")
+                flag_open_edit="y"
                 shift
                 ;;
             *)
@@ -1801,6 +1802,10 @@ function _parse_args_open {
                 ;;
         esac
     done
+    if [[ $nflag -eq 0 ]]; then
+        log_error "Missing note id."
+        exit $ERR_ARGS
+    fi
     push_op "open"
     push_op_args "$nid"
     local n2="$#"
