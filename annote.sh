@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.13"
+__VERSION__="1.14"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -725,23 +725,27 @@ function make_header {
     local ngrp="GROUP"
     local ntitle="TITLE"
     local ntags="TAGS"
+    local nc=0
     local fmt="$(echo "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    for i in {1..5}; do
-       if [[ "$fmt" =~ \<SNO\> ]]; then
-           sno="$(_list_prettify_fg "$i" "$sno" "y")"
+    for i in `echo "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
+       (( ++nc ))
+       if [[ "$i" =~ \<SNO\> ]]; then
+           sno="$(_list_prettify_fg "$nc" "$sno" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<SNO>/$sno/g" )"
-       elif [[ "$fmt" =~ \<NID\> ]]; then
-           nid="$(_list_prettify_fg "$i" "$nid" "y")"
+       elif [[ "$i" =~ \<NID\> ]]; then
+           nid="$(_list_prettify_fg "$nc" "$nid" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<NID>/$nid/g" )"
-       elif [[ "$fmt" =~ \<GROUP\> ]]; then
-           ngrp="$(_list_prettify_fg "$i" "$ngrp" "y")"
+       elif [[ "$i" =~ \<GROUP\> ]]; then
+           ngrp="$(_list_prettify_fg "$nc" "$ngrp" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
-       elif [[ "$fmt" =~ \<TAGS\> ]]; then
-           ntags="$(_list_prettify_fg "$i" "$ntags" "y")"
+       elif [[ "$i" =~ \<TAGS\> ]]; then
+           ntags="$(_list_prettify_fg "$nc" "$ntags" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
-       elif [[ "$fmt" =~ \<TITLE\> ]]; then
-           ntitle="$(_list_prettify_fg "$i" "$ntitle" "y")"
+       elif [[ "$i" =~ \<TITLE\> ]]; then
+           ntitle="$(_list_prettify_fg "$nc" "$ntitle" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
+       else
+           (( --nc ))
        fi
     done
     if [ "x$flag_no_pretty" != "xy" ]; then
@@ -753,28 +757,32 @@ function make_header {
 function _list_note {
     local sno="$1"
     local nid="$2"
+    local nc=0
     local ngrp="$(get_note_group "$nid")"
     local ntitle="$(get_note_title "$nid")"
     local ntags="$(get_note_tags "$nid")"
     local fmt="$(echo "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    for i in {1..5}; do
-       if [[ "$fmt" =~ \<SNO\> ]]; then
-           sno="$(_list_prettify_fg "$i" "$sno" "y")"
+    for i in `echo "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
+        (( ++nc ))
+       if [[ "$i" =~ \<SNO\> ]]; then
+           sno="$(_list_prettify_fg "$nc" "$sno" "y")"
            fmt="$(echo "$fmt" | sed -e "s/<SNO>/$sno/g" )"
-       elif [[ "$fmt" =~ \<NID\> ]]; then
-           nid="$(_list_prettify_fg "$i" "$nid")"
+       elif [[ "$i" =~ \<NID\> ]]; then
+           nid="$(_list_prettify_fg "$nc" "$nid")"
            fmt="$(echo "$fmt" | sed -e "s/<NID>/$nid/g" )"
-       elif [[ "$fmt" =~ \<GROUP\> ]]; then
-           ngrp="$(_list_prettify_fg "$i" "$ngrp")"
+       elif [[ "$i" =~ \<GROUP\> ]]; then
+           ngrp="$(_list_prettify_fg "$nc" "$ngrp")"
            fmt="$(echo "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
-       elif [[ "$fmt" =~ \<TAGS\> ]]; then
-           ntags="$(_list_prettify_fg "$i" "$ntags")"
+       elif [[ "$i" =~ \<TAGS\> ]]; then
+           ntags="$(_list_prettify_fg "$nc" "$ntags")"
            fmt="$(echo "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
-       elif [[ "$fmt" =~ \<TITLE\> ]]; then
-           ntitle="$(_list_prettify_fg "$i" "$ntitle")"
+       elif [[ "$i" =~ \<TITLE\> ]]; then
+           ntitle="$(_list_prettify_fg "$nc" "$ntitle")"
            ntitle="$(echo "$ntitle" | sed 's/\//\\\//g')"
            ntitle="$(echo "$ntitle" | sed 's/&/\\&/g')"
            fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
+       else
+           (( --nc ))
        fi
     done
     echo -e "$fmt"
