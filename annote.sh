@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__="annote"
-__VERSION__="1.14"
+__VERSION__="1.15"
 
 # variables
 c_red="$(tput setaf 196)"
@@ -228,7 +228,7 @@ function help {
     log_plain "${idnt_l1}$(as_bold " -n")|$(as_bold "--new")${fsep_3}Add new Note. If no sub options suplied then this will assume $(as_dim "defaults") or $(as_dim "ask")."
     log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Title of note. (required)"
     log_plain "${idnt_sc1}$(as_bold " -g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Group for note (use '$(as_bold ".")' for subgroups). Uses $(as_dim "default") group, if not specified."
-    log_plain "${idnt_sc1}$(as_bold " -T")|$(as_bold "--tag") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Tags for note (use '$(as_bold ",")' for multiple tags). Uses $(as_dim "default") tag, if not specified."
+    log_plain "${idnt_sc1}$(as_bold " -T")|$(as_bold "--tags") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Tags for note (use '$(as_bold ",")' for multiple tags). Uses $(as_dim "default") tag, if not specified."
     log_plain "${idnt_sc1}$(as_bold " -r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
     log_plain "${idnt_sc1}$(as_bold " -c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
     log_plain "${idnt_sc1}$(as_bold " -f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
