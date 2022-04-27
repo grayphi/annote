@@ -1,8 +1,5 @@
-" Use Vim defaults instead of 100% vi compatibility
-" Avoid side-effects when nocompatible has already been set.
-if &compatible
-  set nocompatible
-endif
+" load global configuration
+source /etc/vimrc
 
 " highlighting comments for annote notes
 " comments defination: <start>@<number|range>!<space><string>
