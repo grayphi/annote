@@ -21,7 +21,7 @@ match cmnts /^\s*\(##\)\?@[0-9.*-]*! .*/
 " subheading defination: #@<number> <string>
 "   integer: <[0-9]+>
 "   string: <.*>
-"   number: (<integer>|<integer.number>)
+"   number: (<integer.number>)
 "
 " numeral back reference defination: @{<number>}
 "   integer: <[0-9]+>
