@@ -7,6 +7,12 @@ if [ -n "$INSTALLED_BIN" ]; then
     rm -f "$INSTALLED_BIN"
     HOME_DIR="$(realpath ~)/.annote"
     CONF_FILE="$HOME_DIR/annote.config"
+    VIMRC_FILE="$HOME_DIR/vimrc"
+
+    if [ -f "$VIMRC_FILE" ]; then
+        rm $VIMRC_FILE
+    fi
+
     if [ -d "$HOME_DIR" ] && [ -f "$CONF_FILE" ]; then
         DB_DIR="$(cat "$CONF_FILE"  | sed -e 's/^\s\+//' | grep "^db_loc" | cut -d= -f2- | sed -e 's/^\s\+//' -e 's/\s\+$//')"
         rm -f "$CONF_FILE"
