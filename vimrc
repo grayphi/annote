@@ -28,5 +28,5 @@ match cmnts /^\s*\(##\)\?@[0-9.*-]*! .*/
 "   string: <[^]]*>
 "
 highlight subheads ctermfg=DarkGreen
-2match subheads /\(^\s*#@[0-9]\+[0-9.]*[0-9]\+ .*\|@{[0-9.]\+}\|@\[[^]]\+\]\)/
+2match subheads /\(^\s*#@[0-9]\+[0-9.]*[0-9]\+ .*\|@{[0-9.]\+}\|@[([][^]]\+[)\]]\)/
 
