@@ -25,8 +25,12 @@ match cmnts /^\s*\(##\)\?@[0-9.*-]*! .*/
 "   number: (<integer>|<integer.number>)
 "
 " string back reference defination: @[<string>]
-"   string: <[^]]*>
+"   string: <[^]]+>
 "
+" highlighting important text than the surrounding
+"  defination: @(<string>)
+"   string: <[^)]+>
+
 highlight subheads ctermfg=DarkGreen
 2match subheads /\(^\s*#@[0-9]\+[0-9.]*[0-9]\+ .*\|@{[0-9.]\+}\|@\[[^]]\+\]\|@[(][^)]\+[)]\)/
 
