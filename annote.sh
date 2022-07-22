@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 
 ###############################################################################
-#                     ANNOTATE (terminal notes command)
+#               ANNOTATE (Terminal Utility for Notes Management)
 ###############################################################################
 
-__NAME__="annote"
-__VERSION__="1.15"
+__NAME__='annote'
+__VERSION__='2.0'
 
 # variables
-c_red="$(tput setaf 196)"
-c_cyan="$(tput setaf 44)"
-c_light_green_2="$(tput setaf 10)"
-c_yellow="$(tput setaf 190)"
-c_orange="$(tput setaf 202)"
-c_light_blue="$(tput setaf 42)"
-c_light_green="$(tput setaf 2)"
-c_light_red="$(tput setaf 9)"
+c_red=$(tput setaf 196)
+c_cyan=$(tput setaf 44)
+c_light_green_2=$(tput setaf 10)
+c_yellow=$(tput setaf 190)
+c_orange=$(tput setaf 202)
+c_light_blue=$(tput setaf 42)
+c_light_green=$(tput setaf 2)
+c_light_red=$(tput setaf 9)
 
-b_black="$(tput setab 16)"
-b_dark_black="$(tput setab 233)"
-b_light_black="$(tput setab 236)"
+b_black=$(tput setab 16)
+b_dark_black=$(tput setab 233)
+b_light_black=$(tput setab 236)
 
-s_bold="$(tput bold)"
-s_dim="$(tput dim)"
-s_underline="$(tput smul)"
+s_bold=$(tput bold)
+s_dim=$(tput dim)
+s_underline=$(tput smul)
 
-p_reset="$(tput sgr0)"
+p_reset=$(tput sgr0)
 
 config_file="$(realpath ~)/.annote/annote.config"
 u_conf_file=""
@@ -72,67 +72,67 @@ ERR_ARCH=4
 ERR_ARGS=5
 
 function __cont {
-    echo "$(echo "$1" | sed -e "s/${p_reset/[/\\[}/$p_reset$2/g")"
+    printf '%s' "${1//$p_reset/$p_reset$2}"
 }
 
 function _color {
-    echo "$2$(__cont "$1" "$2")$p_reset"
+    printf '%s' "$2$(__cont "$1" "$2")$p_reset"
 }
 
 function as_red {
-    echo "$(_color "$1" "$c_red")"
+    printf '%s' "$(_color "$1" "$c_red")"
 }
 
 function as_cyan {
-    echo "$(_color "$1" "$c_cyan")"
+    printf '%s' "$(_color "$1" "$c_cyan")"
 }
 
 function as_yellow {
-    echo "$(_color "$1" "$c_yellow")"
+    printf '%s' "$(_color "$1" "$c_yellow")"
 }
 
 function as_orange {
-    echo "$(_color "$1" "$c_orange")"
+    printf '%s' "$(_color "$1" "$c_orange")"
 }
 
 function as_light_blue {
-    echo "$(_color "$1" "$c_light_blue")"
+    printf '%s' "$(_color "$1" "$c_light_blue")"
 }
 
 function as_light_green {
-    echo "$(_color "$1" "$c_light_green")"
+    printf '%s' "$(_color "$1" "$c_light_green")"
 }
 
 function as_light_green_2 {
-    echo "$(_color "$1" "$c_light_green_2")"
+    printf '%s' "$(_color "$1" "$c_light_green_2")"
 }
 
 function as_light_red {
-    echo "$(_color "$1" "$c_light_red")"
+    printf '%s' "$(_color "$1" "$c_light_red")"
 }
 
 function on_black {
-    echo "$(_color "$1" "$b_black")"
+    printf '%s' "$(_color "$1" "$b_black")"
 }
 
 function on_light_black {
-    echo "$(_color "$1" "$b_light_black")"
+    printf '%s' "$(_color "$1" "$b_light_black")"
 }
 
 function on_dark_black {
-    echo "$(_color "$1" "$b_dark_black")"
+    printf '%s' "$(_color "$1" "$b_dark_black")"
 }
 
 function as_bold {
-    echo "$(_color "$1" "$s_bold")"
+    printf '%s' "$(_color "$1" "$s_bold")"
 }
 
 function as_dim {
-    echo "$(_color "$1" "$s_dim")"
+    printf '%s' "$(_color "$1" "$s_dim")"
 }
 
 function as_underline {
-    echo "$(_color "$1" "$s_underline")"
+    printf '%s' "$(_color "$1" "$s_underline")"
 }
 
 function log_error {
@@ -150,8 +150,8 @@ function log_warn {
 }
 
 function log {
-    local sym="$(as_bold "$(as_light_blue '*')" )"
-    if [ $# -eq 2 ]; then
+    local sym="$(as_bold "$(as_light_blue '*')")"
+    if [ $# -gt 1 ]; then
         sym="$1"
         shift
     fi
@@ -159,7 +159,7 @@ function log {
 }
 
 function log_plain {
-    echo -e "$*"
+    printf "$*\n" ''
 }
 
 function log_verbose {
@@ -175,21 +175,21 @@ function log_verbose_info {
 }
 
 function prompt {
-    echo "$(log "$(as_cyan "$1")")"
+    log "$(as_cyan "$1")"
 }
 
 function prompt_error {
-    echo "$(log "$(as_red "$(as_bold "$1")")")"
+    log "$(as_red "$(as_bold "$1")")"
 }
 
 function __banner__ {
-    as_light_green_2 ''
-    as_light_green_2 '  █████╗ ███╗   ██╗███╗   ██╗ ██████╗ ████████╗ █████╗ ████████╗███████╗'
-    as_light_green_2 ' ██╔══██╗████╗  ██║████╗  ██║██╔═══██╗╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝'
-    as_light_green_2 ' ███████║██╔██╗ ██║██╔██╗ ██║██║   ██║   ██║   ███████║   ██║   █████╗  '
-    as_light_green_2 ' ██╔══██║██║╚██╗██║██║╚██╗██║██║   ██║   ██║   ██╔══██║   ██║   ██╔══╝  '
-    as_light_green_2 ' ██║  ██║██║ ╚████║██║ ╚████║╚██████╔╝   ██║   ██║  ██║   ██║   ███████╗'
-    as_light_green_2 " $(as_underline '╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝')"
+    log_plain "$(as_light_green_2 '')"
+    log_plain "$(as_light_green_2 '  █████╗ ███╗   ██╗███╗   ██╗ ██████╗ ████████╗ █████╗ ████████╗███████╗')"
+    log_plain "$(as_light_green_2 ' ██╔══██╗████╗  ██║████╗  ██║██╔═══██╗╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝')"
+    log_plain "$(as_light_green_2 ' ███████║██╔██╗ ██║██╔██╗ ██║██║   ██║   ██║   ███████║   ██║   █████╗  ')"
+    log_plain "$(as_light_green_2 ' ██╔══██║██║╚██╗██║██║╚██╗██║██║   ██║   ██║   ██╔══██║   ██║   ██╔══╝  ')"
+    log_plain "$(as_light_green_2 ' ██║  ██║██║ ╚████║██║ ╚████║╚██████╔╝   ██║   ██║  ██║   ██║   ███████╗')"
+    log_plain "$(as_light_green_2 " $(as_underline '╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝')")"
     log_plain "$(as_orange "                              $__NAME__ (v$__VERSION__)")"
 }
 
@@ -203,60 +203,60 @@ function help {
     local fsep_3="$fsep_2\t"
     local fsep_4="$fsep_3\t"
 
-    log_plain "${idnt_l1}$(as_bold " -h")|$(as_bold "--help")${fsep_3}Show help and exit."
-    log_plain "${idnt_l1}$(as_bold " --info")${fsep_4}Show information and exit."
-    log_plain "${idnt_l1}$(as_bold " -V")|$(as_bold "--version")${fsep_3}Show version and exit."
-    log_plain "${idnt_l1}$(as_bold " -v")|$(as_bold "--verbose")${fsep_3}Be verbose."
-    log_plain "${idnt_l1}$(as_bold " -S")|$(as_bold "--silent")${fsep_3}Be silent, don't ask questions, use $(as_dim "default") values whenever required."
-    log_plain "${idnt_l1}$(as_bold " -q")|$(as_bold "--quite")${fsep_3}Disable warning messages to print."
-    log_plain "${idnt_l1}$(as_bold " --strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
-    log_plain "${idnt_l1}$(as_bold " --gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
-    log_plain "${idnt_l1}$(as_bold " --no-pretty")${fsep_3}Do not prettify output."
-    log_plain "${idnt_l1}$(as_bold " --stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
-    log_plain "${idnt_l1}$(as_bold " --inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
-    log_plain "${idnt_l1}$(as_bold " --delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
-    log_plain "${idnt_l1}$(as_bold " --format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
+    log_plain "${idnt_l1}$(as_bold "-h")|$(as_bold "--help")${fsep_3}Show help and exit."
+    log_plain "${idnt_l1}$(as_bold "--info")${fsep_4}Show information and exit."
+    log_plain "${idnt_l1}$(as_bold "-V")|$(as_bold "--version")${fsep_3}Show version and exit."
+    log_plain "${idnt_l1}$(as_bold "-v")|$(as_bold "--verbose")${fsep_3}Be verbose."
+    log_plain "${idnt_l1}$(as_bold "-S")|$(as_bold "--silent")${fsep_3}Be silent, don't ask questions, use $(as_dim "default") values whenever required."
+    log_plain "${idnt_l1}$(as_bold "-q")|$(as_bold "--quite")${fsep_3}Disable warning messages to print."
+    log_plain "${idnt_l1}$(as_bold "--strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
+    log_plain "${idnt_l1}$(as_bold "--gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
+    log_plain "${idnt_l1}$(as_bold "--no-pretty")${fsep_3}Do not prettify output."
+    log_plain "${idnt_l1}$(as_bold "--stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
+    log_plain "${idnt_l1}$(as_bold "--inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
+    log_plain "${idnt_l1}$(as_bold "--delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
+    log_plain "${idnt_l1}$(as_bold "--format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
 
-    log_plain "${idnt_l1}$(as_bold " -C")|$(as_bold "--config")${fsep_3}Manages config, if specified, then atleast one option has to be supplied."
-    log_plain "${idnt_sc1}$(as_bold " -i")|$(as_bold "--import") [$(as_bold "$(as_light_green "file")")]${fsep_2}Import config from $(as_bold "$(as_light_green "file")")."
-    log_plain "${idnt_sc1}$(as_bold " -x")|$(as_bold "--export") [$(as_bold "$(as_light_green "file")")]${fsep_2}Export config to $(as_bold "$(as_light_green "file")")."
-    log_plain "${idnt_sc1}$(as_bold " -u")|$(as_bold "--use") [$(as_bold "$(as_light_green "file")")]${fsep_2}Use $(as_bold "$(as_light_green "file")") as current instance's config."
-    log_plain "${idnt_sc1}$(as_bold " -s")|$(as_bold "--set") [$(as_bold "$(as_light_green "'key=value'")")]${fsep_1}Overrides $(as_bold "$(as_light_green "key")") in current instance, repeat $(as_bold "set") to override more $(as_bold "$(as_light_green "key")")s."
+    log_plain "${idnt_l1}$(as_bold "-C")|$(as_bold "--config")${fsep_3}Manages config, if specified, then atleast one option has to be supplied."
+    log_plain "${idnt_sc1}$(as_bold "-i")|$(as_bold "--import") [$(as_bold "$(as_light_green "file")")]${fsep_2}Import config from $(as_bold "$(as_light_green "file")")."
+    log_plain "${idnt_sc1}$(as_bold "-x")|$(as_bold "--export") [$(as_bold "$(as_light_green "file")")]${fsep_2}Export config to $(as_bold "$(as_light_green "file")")."
+    log_plain "${idnt_sc1}$(as_bold "-u")|$(as_bold "--use") [$(as_bold "$(as_light_green "file")")]${fsep_2}Use $(as_bold "$(as_light_green "file")") as current instance's config."
+    log_plain "${idnt_sc1}$(as_bold "-s")|$(as_bold "--set") [$(as_bold "$(as_light_green "'key=value'")")]${fsep_1}Overrides $(as_bold "$(as_light_green "key")") in current instance, repeat $(as_bold "set") to override more $(as_bold "$(as_light_green "key")")s."
     
-    log_plain "${idnt_l1}$(as_bold " -D")|$(as_bold "--db") [$(as_bold "$(as_light_green "dbl_key")")]${fsep_2}Use db '$(as_bold "$(as_light_green "dbl_key")")' from config file as current instance's db location."
+    log_plain "${idnt_l1}$(as_bold "-D")|$(as_bold "--db") [$(as_bold "$(as_light_green "dbl_key")")]${fsep_2}Use db '$(as_bold "$(as_light_green "dbl_key")")' from config file as current instance's db location."
 
-    log_plain "${idnt_l1}$(as_bold " -n")|$(as_bold "--new")${fsep_3}Add new Note. If no sub options suplied then this will assume $(as_dim "defaults") or $(as_dim "ask")."
-    log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Title of note. (required)"
-    log_plain "${idnt_sc1}$(as_bold " -g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Group for note (use '$(as_bold ".")' for subgroups). Uses $(as_dim "default") group, if not specified."
-    log_plain "${idnt_sc1}$(as_bold " -T")|$(as_bold "--tags") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Tags for note (use '$(as_bold ",")' for multiple tags). Uses $(as_dim "default") tag, if not specified."
-    log_plain "${idnt_sc1}$(as_bold " -r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
-    log_plain "${idnt_sc1}$(as_bold " -c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
-    log_plain "${idnt_sc1}$(as_bold " -f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
+    log_plain "${idnt_l1}$(as_bold "-n")|$(as_bold "--new")${fsep_3}Add new Note. If no sub options suplied then this will assume $(as_dim "defaults") or $(as_dim "ask")."
+    log_plain "${idnt_sc1}$(as_bold "-t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Title of note. (required)"
+    log_plain "${idnt_sc1}$(as_bold "-g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Group for note (use '$(as_bold ".")' for subgroups). Uses $(as_dim "default") group, if not specified."
+    log_plain "${idnt_sc1}$(as_bold "-T")|$(as_bold "--tags") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Tags for note (use '$(as_bold ",")' for multiple tags). Uses $(as_dim "default") tag, if not specified."
+    log_plain "${idnt_sc1}$(as_bold "-r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
+    log_plain "${idnt_sc1}$(as_bold "-c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
+    log_plain "${idnt_sc1}$(as_bold "-f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
 
-    log_plain "${idnt_l1}$(as_bold " -l")|$(as_bold "--list")${fsep_3}List out notes from db. Output controlling options can affects it's output."
+    log_plain "${idnt_l1}$(as_bold "-l")|$(as_bold "--list")${fsep_3}List out notes from db. Output controlling options can affects it's output."
 
-    log_plain "${idnt_l1}$(as_bold " -e")|$(as_bold "--erase")|$(as_bold "--delete")"
+    log_plain "${idnt_l1}$(as_bold "-e")|$(as_bold "--erase")|$(as_bold "--delete")"
     log_plain "${idnt_sc1}$(as_bold "--note") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Delete note $(as_bold "$(as_light_green "nid")")(id)."
     log_plain "${idnt_sc1}$(as_bold "--group") [$(as_bold "$(as_light_green "gname")")]${fsep_2}Delete group $(as_bold "$(as_light_green "gname")")(fully qualified name), and assign $(as_dim "default") group to notes."
     log_plain "${idnt_sc1}$(as_bold "--group-nosafe") [$(as_bold "$(as_light_green "gname")")]${fsep_1}Delete group $(as_bold "$(as_light_green "gname")")(fully qualified name), also deletes the notes belongs to it."
     log_plain "${idnt_sc1}$(as_bold "--tag") [$(as_bold "$(as_light_green "tname")")]${fsep_2}Delete tag $(as_bold "$(as_light_green "tname")"), assign $(as_dim "default") tag, if this was only tag to that note."
 
-    log_plain "${idnt_l1}$(as_bold " -o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Open note $(as_bold "$(as_light_green "nid")")(id) in Pager."
+    log_plain "${idnt_l1}$(as_bold "-o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Open note $(as_bold "$(as_light_green "nid")")(id) in Pager."
     log_plain "${idnt_sc1}$(as_bold "--edit")${fsep_3}Use Editor instead of Pager to open."
     
-    log_plain "${idnt_l1}$(as_bold " -m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note $(as_bold "$(as_light_green "nid")")(id), if none from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") are present, then open note with editor."
-    log_plain "${idnt_sc1}$(as_bold " -t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Modify title of note."
-    log_plain "${idnt_sc1}$(as_bold " -g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Modify group of note (use '$(as_bold ".")' for subgroups)."
-    log_plain "${idnt_sc1}$(as_bold " -T")|$(as_bold "--tag") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Modify tags of note (use '$(as_bold ",")' for multiple tags)."
+    log_plain "${idnt_l1}$(as_bold "-m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note $(as_bold "$(as_light_green "nid")")(id), if none from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") are present, then open note with editor."
+    log_plain "${idnt_sc1}$(as_bold "-t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Modify title of note."
+    log_plain "${idnt_sc1}$(as_bold "-g")|$(as_bold "--group") [$(as_bold "$(as_light_green "group")")]${fsep_2}Modify group of note (use '$(as_bold ".")' for subgroups)."
+    log_plain "${idnt_sc1}$(as_bold "-T")|$(as_bold "--tag") [$(as_bold "$(as_light_green "tags")")]${fsep_2}Modify tags of note (use '$(as_bold ",")' for multiple tags)."
     log_plain "${idnt_sc2}$(as_bold "--append")${fsep_3}Append new tags. (default)"
     log_plain "${idnt_sc2}$(as_bold "--overwrite")${fsep_2}Overwrite with new tags."
     log_plain "${idnt_sc2}$(as_bold "--delete")${fsep_3}Delete $(as_bold "$(as_light_green "tags")"), if present, and assign $(as_dim "default") tag, if note left with no tags."
-    log_plain "${idnt_sc1}$(as_bold " -r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
-    log_plain "${idnt_sc1}$(as_bold " -c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
-    log_plain "${idnt_sc1}$(as_bold " -f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
-    log_plain "${idnt_sc1}$(as_bold " -O")|$(as_bold "--no-append")|$(as_bold "--overwrite")${fsep_1}Do not append to note, and overwrite with new content."
+    log_plain "${idnt_sc1}$(as_bold "-r")|$(as_bold "--record")${fsep_3}Record terminal activity as note, invokes the $(as_dim "$(as_underline "script")") command."
+    log_plain "${idnt_sc1}$(as_bold "-c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
+    log_plain "${idnt_sc1}$(as_bold "-f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
+    log_plain "${idnt_sc1}$(as_bold "-O")|$(as_bold "--no-append")|$(as_bold "--overwrite")${fsep_1}Do not append to note, and overwrite with new content."
 
-    log_plain "${idnt_l1}$(as_bold " -F")|$(as_bold "--find")|$(as_bold "--search")${fsep_2}Search and list. Output controlling or strict options can affects it's behaviour."
+    log_plain "${idnt_l1}$(as_bold "-F")|$(as_bold "--find")|$(as_bold "--search")${fsep_2}Search and list. Output controlling or strict options can affects it's behaviour."
     log_plain "${idnt_sc1}$(as_bold "--tags") [$(as_bold "$(as_light_green "pattern")")]${fsep_2}Search Tags with matching $(as_bold "$(as_light_green "pattern")"), and display number of notes belong to them."
     log_plain "${idnt_sc2}$(as_bold "--list")${fsep_3}Display all notes instead of count of notes."
     log_plain "${idnt_sc1}$(as_bold "--group") [$(as_bold "$(as_light_green "pattern")")]${fsep_2}Search Groups with matching $(as_bold "$(as_light_green "pattern")"), and display number of notes belong to them."
@@ -273,9 +273,9 @@ function help {
     log_plain "${idnt_sc3}$(as_bold "--before") [$(as_bold "$(as_light_green "date")")]${fsep_1}Filter notes that are modified before $(as_bold "$(as_light_green "date")")."
     log_plain "${idnt_sc3}$(as_bold "--after") [$(as_bold "$(as_light_green "date")")]${fsep_2}Filter notes that are modified after $(as_bold "$(as_light_green "date")")."
 
-    log_plain "${idnt_l1}$(as_bold " --archive") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Archive note $(as_bold "$(as_light_green "nid")")(id)."
-    log_plain "${idnt_l1}$(as_bold " --unarchive") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Unarchive note $(as_bold "$(as_light_green "nid")")(id)."
-    log_plain "${idnt_l1}$(as_bold " --list-archive")${fsep_3}List archived notes."
+    log_plain "${idnt_l1}$(as_bold "--archive") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Archive note $(as_bold "$(as_light_green "nid")")(id)."
+    log_plain "${idnt_l1}$(as_bold "--unarchive") [$(as_bold "$(as_light_green "nid")")]${fsep_2}Unarchive note $(as_bold "$(as_light_green "nid")")(id)."
+    log_plain "${idnt_l1}$(as_bold "--list-archive")${fsep_3}List archived notes."
 }
 
 function _info {
@@ -383,11 +383,11 @@ function _set_key {
 function _conf_file {
     local cfile="$1"
     local line=""
-    cfile="$(echo "$cfile" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    cfile="$(printf '%s' "$cfile" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$cfile" ] && [ -f "$cfile" ]; then
         while IFS= read -r line; do
-            local key="$(echo "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
-            local value="$(echo "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
+            local key="$(printf '%s' "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
+            local value="$(printf '%s' "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
             _set_key "$key" "$value"
         done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' \
             -e '/^$/d' "$cfile")
@@ -406,9 +406,9 @@ function _load_user_conf {
 
 function store_kv_pair {
     local kv="$1"
-    local kv="$(echo "$kv" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    local k="$(echo "$kv" | cut -d= -f1 | sed -e 's/\s\+$//')"
-    local v="$(echo "$kv" | cut -d= -f2- | sed -e 's/^\s\+//')"
+    local kv="$(printf '%s' "$kv" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local k="$(printf '%s' "$kv" | cut -d= -f1 | sed -e 's/\s\+$//')"
+    local v="$(printf '%s' "$kv" | cut -d= -f2- | sed -e 's/^\s\+//')"
     if [ -n "$k" ]; then
         kv_conf_var["$k"]="$v"
     fi
@@ -449,9 +449,9 @@ function note_exists {
     local nid="$1"
     local f="$(ls "$notes_loc" | grep "^$nid$" | wc -l)"
     if [[ "$f" -gt 0 ]]; then
-        echo "true"
+        printf '%s' "true"
     else
-        echo "false"
+        printf '%s' "false"
     fi
 }
 
@@ -459,9 +459,9 @@ function tag_exists {
     local tname="$1"
     local c="$(ls "$tags_loc" | grep "^$tname$" | wc -l)"
     if [[ "$c" -gt 0 ]]; then
-        echo "true"
+        printf '%s' "true"
     else
-        echo "false"
+        printf '%s' "false"
     fi
 }
 
@@ -469,47 +469,47 @@ function group_exists {
     local gname="$1"
     local retval="false"
     if [ -n "$gname" ]; then
-        if [ -d "$groups_loc/$(echo "$gname" | sed 's/\./\//g')" ]; then
+        if [ -d "$groups_loc/$(printf '%s' "$gname" | sed 's/\./\//g')" ]; then
             retval="true"
         fi
     fi
-    echo "$retval"
+    printf '%s' "$retval"
 }
 
 function get_group {
     local group="$1"
-    group="$(echo "$group" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9._ ]//g' \
+    group="$(printf '%s' "$group" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9._ ]//g' \
         -e 's/\.\+/./g' -e 's/^ //' -e 's/ $//' -e 's/ \././g' \
         -e 's/\. /./g' -e 's/ /_/g' -e 's/^\.//' -e 's/\.$//' )"
     if [ -z "$group" ]; then
         group="$def_group"
     fi
-    echo "$group"
+    printf '%s' "$group"
 }
 
 function get_tags {
     local tags="$1"
-    tags="$(echo "$tags" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9,_ ]//g' \
+    tags="$(printf '%s' "$tags" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9,_ ]//g' \
         -e 's/,\+/,/g' -e 's/^ //' -e 's/ $//' -e 's/ ,/,/g' -e 's/, /,/g' \
         -e 's/ /_/g' -e 's/^,//' -e 's/,$//' )"
     if [ -z "$tags" ]; then
         tags="$def_tag"
     fi
-    echo "$tags"
+    printf '%s' "$tags"
 }
 
 function get_group_loc {
     local group="$1"
-    local gl="$groups_loc/$(echo "$group" | sed 's/\./\//g')"
+    local gl="$groups_loc/$(printf '%s' "$group" | sed 's/\./\//g')"
     mkdir -p "$gl"
-    echo "$gl"
+    printf '%s' "$gl"
 }
 
 function get_tag_loc {
     local tag="$1"
     local tl="$tags_loc/$tag"
     mkdir -p "$tl"
-    echo "$tl"
+    printf '%s' "$tl"
 }
 
 function _gen_note_id {
@@ -518,7 +518,7 @@ function _gen_note_id {
         sleep "0.4s"
         nid="$(_gen_note_id)"
     done
-    echo "$nid"
+    printf '%s' "$nid"
 }
 
 function _create_note {
@@ -530,8 +530,8 @@ function _create_note {
     touch "$nloc/$nid.group"
     touch "$nloc/$nid.tags"
     touch "$nloc/$nid.metadata"
-    echo "Created On: $(date --date="@${nid#n}")" > "$nloc/$nid.metadata"
-    echo "$nid"
+    printf '%s\n' "Created On: $(date --date="@${nid#n}")" > "$nloc/$nid.metadata"
+    printf '%s' "$nid"
 }
 
 function _new_note {
@@ -540,33 +540,33 @@ function _new_note {
     local tags="$3"
     local nid="$(_create_note)"
     local nloc="$notes_loc/$nid"
-    echo "$title" > "$nloc/$nid.title" 
+    printf '%s' "$title" > "$nloc/$nid.title" 
     local gl="$(get_group_loc "$group")"
-    echo "$group" > "$nloc/$nid.group"
-    echo "$nid" >> "$gl/notes.lnk"
+    printf '%s' "$group" > "$nloc/$nid.group"
+    printf '%s\n' "$nid" >> "$gl/notes.lnk"
     local tag=""
     while IFS= read -d, -r tag ; do
         # useless check, but let it be,in case read takes last ignored empty
         if ! [ -z "$tag" ]; then
             local tl="$(get_tag_loc "$tag")"
-            echo "$tag" >> "$nloc/$nid.tags"
-            echo "$nid" >> "$tl/notes.lnk"
+            printf '%s\n' "$tag" >> "$nloc/$nid.tags"
+            printf '%s\n' "$nid" >> "$tl/notes.lnk"
         fi
-    done < <(echo "$tags,")
-    echo "Modified On: $(date)" >> "$nloc/$nid.metadata"
-    echo "$nid"
+    done < <(printf '%s' "$tags,")
+    printf '%s\n' "Modified On: $(date)" >> "$nloc/$nid.metadata"
+    printf '%s' "$nid"
 }
 
 function get_note {
     local nid="$1"
-    echo "$notes_loc/$nid/$nid.note"
+    printf '%s' "$notes_loc/$nid/$nid.note"
 }
 
 function get_note_title {
     local nid="$1"
     local tf="$notes_loc/$nid/$nid.title"
     if [ -f "$tf" ]; then
-        echo "$(cat "$tf")"
+        printf '%s' "$(cat "$tf")"
     fi
 }
 
@@ -575,7 +575,7 @@ function set_note_title {
     local t_new="$2"
     local tf="$notes_loc/$nid/$nid.title"
     if [ -f "$tf" ]; then
-        echo "$t_new" > "$tf"
+        printf '%s' "$t_new" > "$tf"
     fi
 }
 
@@ -583,7 +583,7 @@ function get_note_tags {
     local nid="$1"
     local tf="$notes_loc/$nid/$nid.tags"
     if [ -f "$tf" ]; then
-        echo "$(cat "$tf" | tr '\n' ',' | sed 's/,$//')"
+        printf '%s' "$(cat "$tf" | tr '\n' ',' | sed 's/,$//')"
     fi
 }
 
@@ -591,7 +591,7 @@ function get_note_group {
     local nid="$1"
     local gf="$notes_loc/$nid/$nid.group"
     if [ -f "$gf" ]; then
-        echo "$(cat "$gf")"
+        printf '%s' "$(cat "$gf")"
     fi
 }
 
@@ -607,8 +607,8 @@ function change_note_group {
         sed -i -e "/^$nid$/d" "$gf"
         gl="$(get_group_loc "$g_new")"
         gf="$gl/notes.lnk"
-        echo "$nid" >> "$gf"
-        echo "$g_new" > "$ngf"
+        printf '%s\n' "$nid" >> "$gf"
+        printf '%s' "$g_new" > "$ngf"
     fi
 }
 
@@ -618,7 +618,7 @@ function update_metadata {
     local value="$3"
     local mfile="$notes_loc/$nid/$nid.metadata"
     sed -i -e "/^$key:.*$/d" "$mfile"
-    echo "$key: $value" >> "$mfile"
+    printf '%s\n' "$key: $value" >> "$mfile"
 }
 
 function get_metadata {
@@ -629,7 +629,7 @@ function get_metadata {
         local mfile="$notes_loc/$nid/$nid.metadata"
         value="$(cat "$mfile" | grep "^$key: " | sed -e "s/^$key: //" )"
     fi
-    echo "$value"
+    printf '%s' "$value"
 }
 
 function add_note {
@@ -637,9 +637,9 @@ function add_note {
     local group="$2"
     local tags="$3"
     local note="$4"
-    title="$(echo "$title" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
-    group="$(echo "$group" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
-    tags="$(echo "$tags" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
+    title="$(printf '%s' "$title" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
+    group="$(printf '%s' "$group" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
+    tags="$(printf '%s' "$tags" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
     if [ -z "$title" ]; then
         read -r -p "$(prompt "Enter title for note:") " title
         while [ -z "$title" ]; do
@@ -665,12 +665,12 @@ function add_note {
             script -q "$nf"
             ;;
         "c")
-            echo "$note" > "$nf"
+            printf '%s\n' "$note" > "$nf"
             ;;
         "f")
             if [ "x$note" = "x-" ]; then
                 while IFS= read -r line; do
-                    echo "$line" >> "$nf"
+                    printf '%s\n' "$line" >> "$nf"
                 done
             else
                 if [ -n "$note" ] && [ -r "$note" ]; then
@@ -703,7 +703,7 @@ function _list_prettify_fg {
             txt="$(as_bold "$txt")"
         fi
     fi
-    echo "$txt"
+    printf '%s' "$txt"
 }
 
 function _list_prettify_bg {
@@ -716,7 +716,7 @@ function _list_prettify_bg {
             txt="$(on_dark_black "$txt")"
         fi
     fi
-    echo "$txt"
+    printf '%s\n' "$txt"
 }
 
 function make_header {
@@ -726,24 +726,24 @@ function make_header {
     local ntitle="TITLE"
     local ntags="TAGS"
     local nc=0
-    local fmt="$(echo "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    for i in `echo "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
+    local fmt="$(printf '%s' "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
+    for i in `printf '%s' "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
        (( ++nc ))
        if [[ "$i" =~ \<SNO\> ]]; then
            sno="$(_list_prettify_fg "$nc" "$sno" "y")"
-           fmt="$(echo "$fmt" | sed -e "s/<SNO>/$sno/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<SNO>/$sno/g" )"
        elif [[ "$i" =~ \<NID\> ]]; then
            nid="$(_list_prettify_fg "$nc" "$nid" "y")"
-           fmt="$(echo "$fmt" | sed -e "s/<NID>/$nid/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<NID>/$nid/g" )"
        elif [[ "$i" =~ \<GROUP\> ]]; then
            ngrp="$(_list_prettify_fg "$nc" "$ngrp" "y")"
-           fmt="$(echo "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
        elif [[ "$i" =~ \<TAGS\> ]]; then
            ntags="$(_list_prettify_fg "$nc" "$ntags" "y")"
-           fmt="$(echo "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
        elif [[ "$i" =~ \<TITLE\> ]]; then
            ntitle="$(_list_prettify_fg "$nc" "$ntitle" "y")"
-           fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
        else
            (( --nc ))
        fi
@@ -751,7 +751,7 @@ function make_header {
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
-    echo -e "$fmt"
+    printf '%s\n' "$fmt"
 }
 
 function _list_note {
@@ -761,35 +761,35 @@ function _list_note {
     local ngrp="$(get_note_group "$nid")"
     local ntitle="$(get_note_title "$nid")"
     local ntags="$(get_note_tags "$nid")"
-    local fmt="$(echo "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    for i in `echo "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
+    local fmt="$(printf '%s' "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
+    for i in `printf '%s' "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
         (( ++nc ))
        if [[ "$i" =~ \<SNO\> ]]; then
            sno="$(_list_prettify_fg "$nc" "$sno" "y")"
-           fmt="$(echo "$fmt" | sed -e "s/<SNO>/$sno/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<SNO>/$sno/g" )"
        elif [[ "$i" =~ \<NID\> ]]; then
            nid="$(_list_prettify_fg "$nc" "$nid")"
-           fmt="$(echo "$fmt" | sed -e "s/<NID>/$nid/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<NID>/$nid/g" )"
        elif [[ "$i" =~ \<GROUP\> ]]; then
            ngrp="$(_list_prettify_fg "$nc" "$ngrp")"
-           fmt="$(echo "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
        elif [[ "$i" =~ \<TAGS\> ]]; then
            ntags="$(_list_prettify_fg "$nc" "$ntags")"
-           fmt="$(echo "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
        elif [[ "$i" =~ \<TITLE\> ]]; then
            ntitle="$(_list_prettify_fg "$nc" "$ntitle")"
-           ntitle="$(echo "$ntitle" | sed 's/\//\\\//g')"
-           ntitle="$(echo "$ntitle" | sed 's/&/\\&/g')"
-           fmt="$(echo "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
+           ntitle="$(printf '%s' "$ntitle" | sed 's/\//\\\//g')"
+           ntitle="$(printf '%s' "$ntitle" | sed 's/&/\\&/g')"
+           fmt="$(printf '%s' "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
        else
            (( --nc ))
        fi
     done
-    echo -e "$fmt"
+    printf '%s' "$fmt"
 }
 
 function get_all_notes {
-    echo "$(ls "$notes_loc" | sort | tr '\n' ',' | sed 's/,$//')"
+    printf '%s' "$(ls "$notes_loc" | sort | tr '\n' ',' | sed 's/,$//')"
 }
 
 function _list_notes {
@@ -798,7 +798,7 @@ function _list_notes {
     local l=""
     make_header
     if [ -n "$nids" ]; then
-        for n in `echo "$nids" | tr ',' '\n'`; do
+        for n in `printf '%s' "$nids" | tr ',' '\n'`; do
             if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
                 continue;
             fi
@@ -808,7 +808,7 @@ function _list_notes {
             _list_prettify_bg "$c" "$l"
         done
     else
-        for n in `echo "$(get_all_notes)" | tr ',' '\n'`; do
+        for n in `printf '%s' "$(get_all_notes)" | tr ',' '\n'`; do
             if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
                 continue;
             fi
@@ -841,7 +841,7 @@ function build_header {
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
-    echo -e "$fmt"
+    printf '%s\n' "$fmt"
 }
 
 function build_row {
@@ -863,19 +863,19 @@ function build_row {
 function list_groups {
     local groups="$1"
     local gl="$db_loc/groups"
-    local sgl="$(echo "$gl" | sed 's/\//\\\//g')"
+    local sgl="$(printf '%s' "$gl" | sed 's/\//\\\//g')"
     if [ -z "$groups" ]; then
         groups="$(find "$gl" -type f -name 'notes.lnk' -print | sed \
             -e "s/^$sgl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
             tr '\n' ',' | sed 's/,$//')"
     else
         local rgs=""
-        for g in `echo "$groups" | tr ',' '\n'`; do
+        for g in `printf '%s' "$groups" | tr ',' '\n'`; do
             if $(group_exists "$g" ); then
                 rgs="$rgs,$g"
             fi
         done
-        groups="$(echo "$rgs" | sed 's/^,//')"
+        groups="$(printf '%s' "$rgs" | sed 's/^,//')"
     fi
     local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
@@ -883,7 +883,7 @@ function list_groups {
     else
         build_header "S.No." "Group" "Total Notes"
     fi
-    for g in `echo "$groups" | tr ',' '\n'`; do
+    for g in `printf '%s' "$groups" | tr ',' '\n'`; do
         local gf="$(get_group_loc "$g")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$gf" ]; then
@@ -908,19 +908,19 @@ function list_groups {
 function list_tags {
     local tags="$1"
     local tl="$db_loc/tags"
-    local stl="$(echo "$tl" | sed 's/\//\\\//g')"
+    local stl="$(printf '%s' "$tl" | sed 's/\//\\\//g')"
     if [ -z "$tags" ]; then
         tags="$(find "$tl" -type f -name 'notes.lnk' -print | sed \
             -e "s/^$stl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
             tr '\n' ',' | sed 's/,$//')"
     else
         local rts=""
-        for t in `echo "$tags" | tr ',' '\n'`; do
+        for t in `printf '%s' "$tags" | tr ',' '\n'`; do
             if $(tag_exists "$t" ); then
                 rts="$rts,$t"
             fi
         done
-        tags="$(echo "$rts" | sed 's/^,//')"
+        tags="$(printf '%s' "$rts" | sed 's/^,//')"
     fi
     local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
@@ -928,7 +928,7 @@ function list_tags {
     else
         build_header "S.No." "Tags" "Total Notes"
     fi
-    for t in `echo "$tags" | tr ',' '\n'`; do
+    for t in `printf '%s' "$tags" | tr ',' '\n'`; do
         local tf="$(get_tag_loc "$t")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$tf" ]; then
@@ -952,7 +952,7 @@ function list_tags {
 
 function open_note {
     local nid="$1"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
         if [ -f "$nf" ]; then
@@ -974,8 +974,8 @@ function open_note {
 function modify_title {
     local nid="$1"
     local t_new="$2"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    t_new="$(echo "$t_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    t_new="$(printf '%s' "$t_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if [ -n "$t_new" ]; then
             set_note_title "$nid" "$t_new"
@@ -995,12 +995,12 @@ function modify_title {
 function modify_note {
     local nid="$1"
     local note="$2"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    note="$(echo "$note" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    note="$(printf '%s' "$note" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
         if [ "x$flag_append_mode" != "xy" ]; then
-            echo -n "" > "$nf"
+            printf '%s' "" > "$nf"
         fi
         case "$flag_modify_arg2" in
             "r")
@@ -1008,12 +1008,12 @@ function modify_note {
                 script -q -a "$nf"
                 ;;
             "c")
-                echo "$note" >> "$nf"
+                printf '%s\n' "$note" >> "$nf"
                 ;;
             "f")
                 if [ "x$note" = "x-" ]; then
                     while IFS= read -r line; do
-                        echo "$line" >> "$nf"
+                        printf '%s\n' "$line" >> "$nf"
                     done
                 else
                     if [ -n "$note" ] && [ -r "$note" ]; then
@@ -1036,8 +1036,8 @@ function modify_note {
 function modify_group {
     local nid="$1"
     local g_new="$2"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    g_new="$(echo "$g_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    g_new="$(printf '%s' "$g_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if [ -n "$g_new" ]; then
             change_note_group "$nid" "$g_new"
@@ -1056,19 +1056,19 @@ function _add_note_tag {
     local tag="$2"
     local ntf="$notes_loc/$nid/$nid.tags"
     local tnf="$(get_tag_loc "$tag")/notes.lnk"
-    echo "$nid" >> "$tnf"
-    echo "$tag" >> "$ntf"
+    printf '%s\n' "$nid" >> "$tnf"
+    printf '%s\n' "$tag" >> "$ntf"
 }
 
 function add_note_tags {
     local nid="$1"
     local n_tags="$2"
     n_tags="$(get_tags "$n_tags")"
-    n_tags="$(echo ",$n_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
+    n_tags="$(printf '%s' ",$n_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
         -e 's/^,//' -e 's/,$//')"
     if [ -n "$n_tags" ]; then
         _delete_note_tag "$nid" "$def_tag"
-        for t in `echo "$n_tags" | tr ',' '\n'`; do
+        for t in `printf '%s' "$n_tags" | tr ',' '\n'`; do
             _add_note_tag "$nid" "$t"
         done
     fi
@@ -1087,10 +1087,10 @@ function delete_note_tags {
     local nid="$1"
     local d_tags="$2"
     d_tags="$(get_tags "$d_tags")"
-    d_tags="$(echo ",$d_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
+    d_tags="$(printf '%s' ",$d_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
         -e 's/^,//' -e 's/,$//')"
     if [ -n "$d_tags" ]; then
-        for t in `echo "$d_tags" | tr ',' '\n'`; do
+        for t in `printf '%s' "$d_tags" | tr ',' '\n'`; do
             _delete_note_tag "$nid" "$t"
         done
     fi
@@ -1105,17 +1105,17 @@ function change_note_tags {
     local t_new="$2"
     local t_old="$(get_note_tags "$nid")"
     t_new="$(get_tags "$t_new")"
-    t_old="$(echo "$t_old" | tr ',' '\n' | sort -u | tr '\n' ',' |\
+    t_old="$(printf '%s' "$t_old" | tr ',' '\n' | sort -u | tr '\n' ',' |\
         sed 's/,$//')"
-    t_new="$(echo "$t_new" | tr ',' '\n' | sort -u | tr '\n' ',' | \
+    t_new="$(printf '%s' "$t_new" | tr ',' '\n' | sort -u | tr '\n' ',' | \
         sed 's/,$//')"
     local a_tags=""
     local d_tags=""
     local c_tags=""
-    for t in `echo "$t_new" | tr ',' '\n'`; do
+    for t in `printf '%s' "$t_new" | tr ',' '\n'`; do
         if [[ ",$t_old," =~ ,$t, ]]; then
             c_tags="$c_tags,$t"
-            t_old="$(echo ",$t_old," | sed -e "s/,$t,/,/" -e 's/^,//' \
+            t_old="$(printf '%s' ",$t_old," | sed -e "s/,$t,/,/" -e 's/^,//' \
                 -e 's/,$//')"
         else
             a_tags="$a_tags,$t"
@@ -1139,8 +1139,8 @@ function change_note_tags {
 function modify_tags {
     local nid="$1"
     local t_new="$2"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    t_new="$(echo "$t_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    t_new="$(printf '%s' "$t_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if [ -n "$t_new" ]; then
             change_note_tags "$nid" "$t_new"
@@ -1156,7 +1156,7 @@ function modify_tags {
 
 function delete_note {
     local nid="$1"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nl="$notes_loc/$nid"
         delete_note_tags "$nid" "$(get_note_tags "$nid")"
@@ -1173,7 +1173,7 @@ function delete_note {
 
 function delete_tag {
     local tag="$1"
-    tag="$(echo "$tag" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    tag="$(printf '%s' "$tag" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$tag" ] && $(tag_exists "$tag"); then
         local tf="$(get_tag_loc "$tag")"
         local tnf="$tf/notes.lnk"
@@ -1189,19 +1189,19 @@ function get_subgroups {
     local sgrps=""
     if $(group_exists "$grp"); then
         local gl="$(get_group_loc "$grp")"
-        local gsl="$(echo "$groups_loc" | sed 's/\//\\\//g')"
+        local gsl="$(printf '%s' "$groups_loc" | sed 's/\//\\\//g')"
         sgrps="$(find "$gl" -mindepth 1 -type d | sed -e "s/^$gsl\///" \
             -e 's/\//./g' | tr '\n' ',' | sed 's/,$//')"
     fi
-    echo "$sgrps"
+    printf '%s' "$sgrps"
 }
 
 function delete_group {
     local fqgn="$1"
-    fqgn="$(echo "$fqgn" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    fqgn="$(printf '%s' "$fqgn" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$fqgn" ] && $(group_exists "$fqgn"); then
         local sgrps="$(get_subgroups "$fqgn")"
-        for cg in `echo "$sgrps,$fqgn" | tr ',' '\n'`; do
+        for cg in `printf '%s' "$sgrps,$fqgn" | tr ',' '\n'`; do
             local gl="$(get_group_loc "$cg")"
             local nf="$gl/notes.lnk"
             if [ -f "$nf" ]; then 
@@ -1219,9 +1219,9 @@ function delete_group {
 }
 
 function find_tags {
-    local tpat="$(echo "$1" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local tpat="$(printf '%s' "$1" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     local tags=""
-    local stl="$(echo "$tags_loc" | sed 's/\//\\\//g')"
+    local stl="$(printf '%s' "$tags_loc" | sed 's/\//\\\//g')"
     local apat="*"
     if [ "x$flag_strict_find" = "xy" ]; then
         apat=""
@@ -1239,13 +1239,13 @@ function find_tags {
 }
 
 function find_groups {
-    local gpat="$(echo "$1" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local gpat="$(printf '%s' "$1" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     local groups=""
-    local sgl="$(echo "$groups_loc" | sed 's/\//\\\//g')"
+    local sgl="$(printf '%s' "$groups_loc" | sed 's/\//\\\//g')"
     if [ "x$flag_strict_find" != "xy" ]; then
-        gpat="*$(echo "$gpat" | sed 's/\./*.*/g')*"
+        gpat="*$(printf '%s' "$gpat" | sed 's/\./*.*/g')*"
     fi
-    gpat="$(echo "$gpat" | sed 's/\./\//g')"
+    gpat="$(printf '%s' "$gpat" | sed 's/\./\//g')"
     if [ -n "$gpat" ]; then
         groups="$(find "$groups_loc"  -mindepth 1 -type d \
             -path "$groups_loc/$gpat" -print | sed -e "s/^$sgl\///" \
@@ -1265,15 +1265,15 @@ function find_notes {
     local find_created_on="$4"          # range seperated with comma
     local find_modified="$5"            # range seperated with comma
     local notes=""
-    local snl="$(echo "$notes_loc" | sed 's/\//\\\//g')"
-    stxt="$(echo "$stxt" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    find_with_tags="$(echo "$find_with_tags" | sed -e 's/^\s\+//' \
+    local snl="$(printf '%s' "$notes_loc" | sed 's/\//\\\//g')"
+    stxt="$(printf '%s' "$stxt" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    find_with_tags="$(printf '%s' "$find_with_tags" | sed -e 's/^\s\+//' \
         -e 's/\s\+$//')"
-    find_with_group="$(echo "$find_with_group" | sed -e 's/^\s\+//' \
+    find_with_group="$(printf '%s' "$find_with_group" | sed -e 's/^\s\+//' \
         -e 's/\s\+$//')"
-    find_created_on="$(echo "$find_created_on" | sed -e 's/^\s\+//' \
+    find_created_on="$(printf '%s' "$find_created_on" | sed -e 's/^\s\+//' \
         -e 's/\s\+$//')"
-    find_modified="$(echo "$find_modified" | sed -e 's/^\s\+//' \
+    find_modified="$(printf '%s' "$find_modified" | sed -e 's/^\s\+//' \
         -e 's/\s\+$//')"
     if [ -n "$stxt" ] && [ "x$flag_search_mode" = "xt" ]; then
         notes="$(find "$notes_loc" -type f -iname "*.title" -exec grep \
@@ -1292,10 +1292,10 @@ function find_notes {
     if [ -n "$find_with_group" ] && [ -n "$notes" ]; then
         if [ "x$flag_strict_find" = "xy" ]; then
             if $(group_exists "$find_with_group"); then
-                for n in `echo "$notes" | tr ',' '\n'`; do
+                for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                     local g="$(get_note_group "$n")"
                     if [ "x$g" != "x$find_with_group" ]; then
-                        notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                        notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                             -e 's/^,//' -e 's/,$//')"
                     fi
                 done
@@ -1303,11 +1303,11 @@ function find_notes {
                 notes=""
             fi
         else
-            for n in `echo "$notes" | tr ',' '\n'`; do
+            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                 local g="$(get_note_group "$n")"
-                local p="$(echo "$find_with_group" | sed 's/\./*.*/g')"
-                if [[ "$(echo "$g" | grep -i "$p" | wc -l)" -eq 0 ]]; then
-                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                local p="$(printf '%s' "$find_with_group" | sed 's/\./*.*/g')"
+                if [[ "$(printf '%s' "$g" | grep -i "$p" | wc -l)" -eq 0 ]]; then
+                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
@@ -1315,14 +1315,14 @@ function find_notes {
     fi
     if [ -n "$find_with_tags" ] && [ -n "$notes" ]; then
         if [ "x$flag_strict_find" = "xy" ]; then
-            for t in `echo "$find_with_tags" | tr ',' '\n'`; do
-                t="$(echo "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+            for t in `printf '%s' "$find_with_tags" | tr ',' '\n'`; do
+                t="$(printf '%s' "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
                 if $(tag_exists "$t"); then
-                    for n in `echo "$notes" | tr ',' '\n'`; do
+                    for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                         local nt="$(get_note_tags "$n")"
-                        if [[ "$(echo ",$nt," | grep ",$t," | wc -l)" \
+                        if [[ "$(printf '%s' ",$nt," | grep ",$t," | wc -l)" \
                             -eq 0 ]]; then
-                            notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                            notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                                 -e 's/^,//' -e 's/,$//')"
                         fi
                     done
@@ -1332,67 +1332,67 @@ function find_notes {
                 fi
             done
         else
-            for n in `echo "$notes" | tr ',' '\n'`; do
+            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                 local nt="$(get_note_tags "$n")"
                 local f=""
-                for t in `echo "$find_with_tags" | tr ',' '\n'`; do
-                    t="$(echo "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-                    if [[ "$(echo ",$nt," | grep -i ",.*$t.*," | wc -l)"  \
+                for t in `printf '%s' "$find_with_tags" | tr ',' '\n'`; do
+                    t="$(printf '%s' "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+                    if [[ "$(printf '%s' ",$nt," | grep -i ",.*$t.*," | wc -l)"  \
                         -gt 0 ]]; then
                         f="y"
                         break
                     fi
                 done
                 if [ -z "$f" ]; then
-                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
         fi
     fi
     if [ -n "$find_created_on" ] && [ -n "$notes" ]; then
-        local after="$(echo "$find_created_on" | cut -d, -f1)"
-        local before="$(echo "$find_created_on" | cut -d, -f2)"
+        local after="$(printf '%s' "$find_created_on" | cut -d, -f1)"
+        local before="$(printf '%s' "$find_created_on" | cut -d, -f2)"
         if [ -n "$after" ] && [ -n "$notes" ]; then
-            for n in `echo "$notes" | tr ',' '\n'`; do
+            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Created On')"
                 d="$(date --date="$d" "+%s")"
                 if [[ "$d" -lt "$after" ]]; then
-                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
         fi
         if [ -n "$before" ] && [ -n "$notes" ]; then
-            for n in `echo "$notes" | tr ',' '\n'`; do
+            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Created On')"
                 d="$(date --date="$d" "+%s")"
                 if [[ "$d" -gt "$before" ]]; then
-                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
         fi
     fi
     if [ -n "$find_modified" ] && [ -n "$notes" ]; then
-        local after="$(echo "$find_modified" | cut -d, -f1)"
-        local before="$(echo "$find_modified" | cut -d, -f2)"
+        local after="$(printf '%s' "$find_modified" | cut -d, -f1)"
+        local before="$(printf '%s' "$find_modified" | cut -d, -f2)"
         if [ -n "$after" ] && [ -n "$notes" ]; then
-            for n in `echo "$notes" | tr ',' '\n'`; do
+            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Modified On')"
                 d="$(date --date="$d" "+%s")"
                 if [[ "$d" -lt "$after" ]]; then
-                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
         fi
         if [ -n "$before" ] && [ -n "$notes" ]; then
-            for n in `echo "$notes" | tr ',' '\n'`; do
+            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
                 local d="$(get_metadata "$n" 'Modified On')"
                 d="$(date --date="$d" "+%s")"
                 if [[ "$d" -gt "$before" ]]; then
-                    notes="$(echo ",$notes," | sed -e "s/,$n,/,/" \
+                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
                         -e 's/^,//' -e 's/,$//')"
                 fi
             done
@@ -1406,7 +1406,7 @@ function find_notes {
 function is_archived {
     local nid="$1"
     local flag="false"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local tags="$(get_note_tags "$nid")"
         local regex=",$archived,"
@@ -1414,12 +1414,12 @@ function is_archived {
             flag="true"
         fi
     fi
-    echo "$flag"
+    printf '%s' "$flag"
 }
 
 function archive_note {
     local nid="$1"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if ! $(is_archived "$nid"); then
             add_note_tags "$nid" "$archived"
@@ -1432,7 +1432,7 @@ function archive_note {
 
 function unarchive_note {
     local nid="$1"
-    nid="$(echo "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if $(is_archived "$nid"); then
             delete_note_tags "$nid" "$archived"
@@ -1451,7 +1451,7 @@ function list_archive {
 }
 
 function push_op {
-    local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
+    local pos="$(printf '%s\n' "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
     if [ "x$pos" = "x" ]; then
         pos="-1"
     fi
@@ -1460,7 +1460,7 @@ function push_op {
 }
 
 function push_op_args {
-    local pos="$(echo "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
+    local pos="$(printf '%s\n' "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
     if [ "x$pos" = "x" ]; then
         pos="-1"
     fi
@@ -1470,7 +1470,7 @@ function push_op_args {
 
 function pop_op {
     v_pop_op=""
-    local pos="$(echo "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | head -n1)"
+    local pos="$(printf '%s\n' "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | head -n1)"
     if [ "x$pos" != "x" ]; then
         v_pop_op="${mutex_ops[$pos]}"
         unset mutex_ops["$pos"]
@@ -1479,7 +1479,7 @@ function pop_op {
 
 function pop_op_args {
     v_pop_op_args=""
-    local pos="$(echo "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | \
+    local pos="$(printf '%s\n' "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | \
         head -n1)"
     if [ "x$pos" != "x" ]; then
         v_pop_op_args="${mutex_ops_args[$pos]}"
@@ -1493,7 +1493,7 @@ function parse_date {
     if [ -z "$cdate" ]; then
         log_error "Invalid date: '$1'"
     fi
-    echo "$cdate"
+    printf '%s' "$cdate"
 }
 
 function _parse_args_config {
