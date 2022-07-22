@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.0'
+__VERSION__='2.1'
 
 # variables
 c_red=$(tput setaf 196)
@@ -70,6 +70,11 @@ ERR_DATE=2
 ERR_MUTEX_OPTS=3
 ERR_ARCH=4
 ERR_ARGS=5
+ERR_PERM=6
+
+if ! $(shopt -q extglob); then
+    shopt -s extglob
+fi
 
 function __cont {
     printf '%s' "${1//$p_reset/$p_reset$2}"
@@ -135,8 +140,21 @@ function as_underline {
     printf '%s' "$(_color "$1" "$s_underline")"
 }
 
+function log_plain {
+    printf "$*\n" '' #FIXME: check this line later
+}
+
+function log {
+    local sym="$(as_bold "$(as_light_blue '*')")"
+    if [ $# -gt 1 ]; then
+        sym="$1"
+        shift
+    fi
+    log_plain "[$sym]: $*" 
+}
+
 function log_error {
-    log "$(as_bold "$(as_red 'ERROR')")"  "$*"  >&2
+    log "$(as_bold "$(as_red 'ERROR')")" "$*" >&2
 }
 
 function log_info {
@@ -149,25 +167,14 @@ function log_warn {
     fi
 }
 
-function log {
-    local sym="$(as_bold "$(as_light_blue '*')")"
-    if [ $# -gt 1 ]; then
-        sym="$1"
-        shift
-    fi
-    log_plain "[$sym]: $*" 
-}
-
-function log_plain {
-    printf "$*\n" ''
-}
-
+#FIXME: fix verbose logger 
 function log_verbose {
     if [ "x$flag_verbose" = "xy" ]; then
         log "$*"
     fi
 }
 
+#FIXME: fix verbose logger 
 function log_verbose_info {
     if [ "x$flag_verbose" = "xy" ]; then
         log_info "$*"
@@ -195,9 +202,10 @@ function __banner__ {
 
 function help {
     local idnt_l1="$1"
-    local idnt_sc1="$idnt_l1   "
-    local idnt_sc2="$idnt_sc1   "
-    local idnt_sc3="$idnt_sc2   "
+    local spaces="   "
+    local idnt_sc1="$idnt_l1$spaces"
+    local idnt_sc2="$idnt_sc1$spaces"
+    local idnt_sc3="$idnt_sc2$spaces"
     local fsep_1="\t"
     local fsep_2="$fsep_1\t"
     local fsep_3="$fsep_2\t"
@@ -298,12 +306,13 @@ function _info {
 
     log_plain "\n$(as_bold "[$(as_yellow "EXIT STATUS")]")"
     log_plain "\t$(as_bold "annote") exits with status $(as_bold "0") as success, greater than $(as_bold "0") if errors occur."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "0") means success."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_CONFIG") means 'configuration' related error."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_DATE") means 'date' related error."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_MUTEX_OPTS") means mutex options provided."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_ARCH") means error during archive/unarchive."
-    log_plain "\t$(as_underline "EXIT CODE"): $(as_bold "$ERR_ARGS") means arguments related error."
+    log_plain "\t$(as_bold "0") --> success."
+    log_plain "\t$(as_bold "$ERR_CONFIG") --> 'configuration' related error."
+    log_plain "\t$(as_bold "$ERR_DATE") --> 'date' related error."
+    log_plain "\t$(as_bold "$ERR_MUTEX_OPTS") --> mutex options provided."
+    log_plain "\t$(as_bold "$ERR_ARCH") --> error during archive/unarchive."
+    log_plain "\t$(as_bold "$ERR_ARGS") --> arguments related error."
+    log_plain "\t$(as_bold "$ERR_PERM") --> file permissions related error."
 
     log_plain "\n$(as_bold "[$(as_yellow "AUTHORS")]")"
     log_plain "\tDinesh Saini <https://github.com/dineshsaini/>"
@@ -324,25 +333,39 @@ function version {
     log_plain "$__NAME__ (v$__VERSION__)"
 }
 
+function trim {
+    local v="$1"
+
+    v=${v##+([[:space:]])}
+    v=${v%%+([[:space:]])}
+
+    printf '%s' "$v"
+}
+
 function import_config {
-    local imf="$1"
-    if [ -f "$imf" ]; then
+    local imf=$(trim "$1")
+    if [ -n "$imf" ] && [ -f "$imf" ] && [ -r "$imf" ]; then
         mkdir -p "$(dirname "$config_file")"
         touch "$config_file"
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
             -e 's/=\s\+/=/' -e '/^$/d' "$imf" >> "$config_file"
         log_info "Done importing conf file"
     else
-        log_error "Error while importing"
+        log_error "Error while importing."
         exit $ERR_CONFIG
     fi
 }
 
 function export_config {
-    local exf="$1"
-    sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
-        -e 's/=\s\+/=/' -e '/^$/d' "$config_file"  > "$exf"
-    log_info "Done exporting conf file"
+    local exf=$(trim "$1")
+    if [ -n "$exf" ]; then
+        sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
+            -e 's/=\s\+/=/' -e '/^$/d' "$config_file"  > "$exf"
+        log_info "Done exporting conf file"
+    else
+        log_error "Error while exporting."
+        exit $ERR_CONFIG
+    fi
 }
 
 function _set_key {
@@ -381,16 +404,11 @@ function _set_key {
 }
 
 function _conf_file {
-    local cfile="$1"
-    local line=""
-    cfile="$(printf '%s' "$cfile" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    if [ -n "$cfile" ] && [ -f "$cfile" ]; then
-        while IFS= read -r line; do
-            local key="$(printf '%s' "$line" | cut -d= -f1 | sed -e 's/\s\+$//')"
-            local value="$(printf '%s' "$line" | cut -d= -f2- | sed -e 's/^\s\+//')"
-            _set_key "$key" "$value"
-        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' \
-            -e '/^$/d' "$cfile")
+    local cfile=$(trim "$1")
+    if [ -n "$cfile" ] && [ -f "$cfile" ] && [ -r "$cfile" ]; then
+        while IFS== read -r key value; do
+            _set_key "$(trim "$key")" "$(trim "$value")"
+        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e '/^$/d' "$cfile")
     fi
 }   
 
@@ -399,16 +417,13 @@ function _load_sys_conf {
 }
 
 function _load_user_conf {
-    if [ -n "$u_conf_file" ] && [ -r "$u_conf_file" ]; then
-        _conf_file "$u_conf_file"
-    fi
+    _conf_file "$u_conf_file"
 }
 
 function store_kv_pair {
-    local kv="$1"
-    local kv="$(printf '%s' "$kv" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    local k="$(printf '%s' "$kv" | cut -d= -f1 | sed -e 's/\s\+$//')"
-    local v="$(printf '%s' "$kv" | cut -d= -f2- | sed -e 's/^\s\+//')"
+    IFS== read k v < <(printf '%s' "$1")
+    k=$(trim "$k")
+    v=$(trim "$v")
     if [ -n "$k" ]; then
         kv_conf_var["$k"]="$v"
     fi
@@ -447,40 +462,43 @@ function initialize_conf {
 
 function note_exists {
     local nid="$1"
-    local f="$(ls "$notes_loc" | grep "^$nid$" | wc -l)"
+    local retval="false"
+    local f=$(find $notes_loc -maxdepth 1 -type d -name "$nid" -print | wc -l)
     if [[ "$f" -gt 0 ]]; then
-        printf '%s' "true"
-    else
-        printf '%s' "false"
+        retval="true"
     fi
+    printf '%s' "$retval"
 }
 
 function tag_exists {
     local tname="$1"
-    local c="$(ls "$tags_loc" | grep "^$tname$" | wc -l)"
+    local retval="false"
+    local c=$(find $tags_loc -maxdepth 1 -type d -name "$tname" -print | wc -l)
     if [[ "$c" -gt 0 ]]; then
-        printf '%s' "true"
-    else
-        printf '%s' "false"
+        retval="true"
     fi
+    printf '%s' "$retval"
 }
 
 function group_exists {
     local gname="$1"
     local retval="false"
-    if [ -n "$gname" ]; then
-        if [ -d "$groups_loc/$(printf '%s' "$gname" | sed 's/\./\//g')" ]; then
-            retval="true"
-        fi
+    if [ -n "$gname" ] && [ -d "$groups_loc/${gname//.//}" ]; then
+        retval="true"
     fi
     printf '%s' "$retval"
 }
 
 function get_group {
-    local group="$1"
-    group="$(printf '%s' "$group" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9._ ]//g' \
-        -e 's/\.\+/./g' -e 's/^ //' -e 's/ $//' -e 's/ \././g' \
-        -e 's/\. /./g' -e 's/ /_/g' -e 's/^\.//' -e 's/\.$//' )"
+    local group=${1//[^A-Za-z0-9._ ]/}
+    group=$(trim "$group")
+    group=${group//+([[:space:]])/_}
+    group=${group//+(.)/.}
+    group=${group//+(_)/_}
+    group=${group//?(_).?(_)/.}
+    group=${group#.}
+    group=${group%.}
+
     if [ -z "$group" ]; then
         group="$def_group"
     fi
@@ -488,10 +506,15 @@ function get_group {
 }
 
 function get_tags {
-    local tags="$1"
-    tags="$(printf '%s' "$tags" | sed -e 's/\s\+/ /g' -e 's/[^A-Za-z0-9,_ ]//g' \
-        -e 's/,\+/,/g' -e 's/^ //' -e 's/ $//' -e 's/ ,/,/g' -e 's/, /,/g' \
-        -e 's/ /_/g' -e 's/^,//' -e 's/,$//' )"
+    local tags=${1//[^A-Za-z0-9,_ ]/}
+    tags=$(trim "$tags")
+    tags=${tags//+([[:space:]])/_}
+    tags=${tags//+(,)/,}
+    tags=${tags//+(_)/_}
+    tags=${tags//?(_),?(_)/,}
+    tags=${tags#,}
+    tags=${tags%,}
+
     if [ -z "$tags" ]; then
         tags="$def_tag"
     fi
@@ -500,7 +523,7 @@ function get_tags {
 
 function get_group_loc {
     local group="$1"
-    local gl="$groups_loc/$(printf '%s' "$group" | sed 's/\./\//g')"
+    local gl="$groups_loc/${group//.//}"
     mkdir -p "$gl"
     printf '%s' "$gl"
 }
@@ -515,7 +538,7 @@ function get_tag_loc {
 function _gen_note_id {
     local nid="n$(date '+%s')"
     while [ -d "$notes_loc/$nid" ]; do
-        sleep "0.4s"
+        sleep "0.13s"
         nid="$(_gen_note_id)"
     done
     printf '%s' "$nid"
@@ -547,7 +570,7 @@ function _new_note {
     local tag=""
     while IFS= read -d, -r tag ; do
         # useless check, but let it be,in case read takes last ignored empty
-        if ! [ -z "$tag" ]; then
+        if [ -n "$tag" ]; then
             local tl="$(get_tag_loc "$tag")"
             printf '%s\n' "$tag" >> "$nloc/$nid.tags"
             printf '%s\n' "$nid" >> "$tl/notes.lnk"
@@ -565,8 +588,8 @@ function get_note {
 function get_note_title {
     local nid="$1"
     local tf="$notes_loc/$nid/$nid.title"
-    if [ -f "$tf" ]; then
-        printf '%s' "$(cat "$tf")"
+    if [ -f "$tf" ] && [ -r "$tf" ]; then
+        printf '%s' "$(< "$tf")"
     fi
 }
 
@@ -574,16 +597,21 @@ function set_note_title {
     local nid="$1"
     local t_new="$2"
     local tf="$notes_loc/$nid/$nid.title"
-    if [ -f "$tf" ]; then
+    if [ -f "$tf" ] && [ -w "$tf" ]; then
         printf '%s' "$t_new" > "$tf"
+    else
+        log_error "Could not able to set title, check file permission."
+        exit $ERR_PERM
     fi
 }
 
 function get_note_tags {
     local nid="$1"
     local tf="$notes_loc/$nid/$nid.tags"
+    local tags=""
     if [ -f "$tf" ]; then
-        printf '%s' "$(cat "$tf" | tr '\n' ',' | sed 's/,$//')"
+        tags="$(tr '\n' ',' < "$tf")"
+        printf '%s' "${tags%,}"
     fi
 }
 
@@ -591,7 +619,7 @@ function get_note_group {
     local nid="$1"
     local gf="$notes_loc/$nid/$nid.group"
     if [ -f "$gf" ]; then
-        printf '%s' "$(cat "$gf")"
+        printf '%s' "$(< "$gf")"
     fi
 }
 
@@ -604,7 +632,8 @@ function change_note_group {
         local ngf="$notes_loc/$nid/$nid.group"
         local gl="$(get_group_loc "$g_old")"
         local gf="$gl/notes.lnk"
-        sed -i -e "/^$nid$/d" "$gf"
+        sed -i.tmp -e "/^$nid$/d" "$gf"
+        rm "$gf.tmp" 2>/dev/null
         gl="$(get_group_loc "$g_new")"
         gf="$gl/notes.lnk"
         printf '%s\n' "$nid" >> "$gf"
@@ -617,7 +646,8 @@ function update_metadata {
     local key="$2"
     local value="$3"
     local mfile="$notes_loc/$nid/$nid.metadata"
-    sed -i -e "/^$key:.*$/d" "$mfile"
+    sed -i.tmp -e "/^$key:.*$/d" "$mfile"
+    rm "$mfile.tmp" 2>/dev/null
     printf '%s\n' "$key: $value" >> "$mfile"
 }
 
@@ -627,19 +657,21 @@ function get_metadata {
     local value=""
     if $(note_exists "$nid"); then
         local mfile="$notes_loc/$nid/$nid.metadata"
-        value="$(cat "$mfile" | grep "^$key: " | sed -e "s/^$key: //" )"
+        value="$(sed -n -e "s/^$key: //p" $mfile)"
     fi
     printf '%s' "$value"
 }
 
 function add_note {
-    local title="$1"
-    local group="$2"
-    local tags="$3"
+    local title="$(trim "$1")"
+    local group="$(trim "$2")"
+    local tags="$(trim "$3")"
     local note="$4"
-    title="$(printf '%s' "$title" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
-    group="$(printf '%s' "$group" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
-    tags="$(printf '%s' "$tags" | sed -e 's/\s\+/ /g' -e 's/^ //' -e 's/ $//')"
+
+    title="${title//+([[:space:]])/ }"
+    group="${group//+([[:space:]])/ }"
+    tags="${tags//+([[:space:]])/ }"
+   
     if [ -z "$title" ]; then
         read -r -p "$(prompt "Enter title for note:") " title
         while [ -z "$title" ]; do
@@ -661,7 +693,7 @@ function add_note {
     local nf="$(get_note "$nid")"
     case "$flag_new_arg4" in
         "r")
-            log_info "Press 'Ctrl + D' when exit recording to note."
+            log_info "Press '$(as_bold "Ctrl + D")' when exit recording to note."
             script -q "$nf"
             ;;
         "c")
@@ -689,6 +721,7 @@ function add_note {
     update_metadata "$nid" "Modified On" "$(date)" 
 }
 
+#TODO
 function _list_prettify_fg {
     local c="$1"
     local txt="$2"
