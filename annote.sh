@@ -721,7 +721,6 @@ function add_note {
     update_metadata "$nid" "Modified On" "$(date)" 
 }
 
-#TODO
 function _list_prettify_fg {
     local c="$1"
     local txt="$2"
@@ -759,28 +758,38 @@ function make_header {
     local ntitle="TITLE"
     local ntags="TAGS"
     local nc=0
-    local fmt="$(printf '%s' "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    for i in `printf '%s' "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
+
+    local fmt="${list_fmt//<DELIM>/$list_delim}"
+
+    while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
        (( ++nc ))
-       if [[ "$i" =~ \<SNO\> ]]; then
-           sno="$(_list_prettify_fg "$nc" "$sno" "y")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<SNO>/$sno/g" )"
-       elif [[ "$i" =~ \<NID\> ]]; then
-           nid="$(_list_prettify_fg "$nc" "$nid" "y")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<NID>/$nid/g" )"
-       elif [[ "$i" =~ \<GROUP\> ]]; then
-           ngrp="$(_list_prettify_fg "$nc" "$ngrp" "y")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
-       elif [[ "$i" =~ \<TAGS\> ]]; then
-           ntags="$(_list_prettify_fg "$nc" "$ntags" "y")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
-       elif [[ "$i" =~ \<TITLE\> ]]; then
-           ntitle="$(_list_prettify_fg "$nc" "$ntitle" "y")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
-       else
-           (( --nc ))
-       fi
+        case "${BASH_REMATCH[1]}" in
+            \<SNO\>)
+                sno="$(_list_prettify_fg "$nc" "$sno" "y")"
+                fmt="${fmt//<SNO>/$sno}"
+                ;;
+            \<NID\>)
+                nid="$(_list_prettify_fg "$nc" "$nid" "y")"
+                fmt="${fmt//<NID>/$nid}"
+                ;;
+            \<GROUP\>)
+                ngrp="$(_list_prettify_fg "$nc" "$ngrp" "y")"
+                fmt="${fmt//<GROUP>/$ngrp}"
+                ;;
+            \<TAGS\>)
+                ntags="$(_list_prettify_fg "$nc" "$ntags" "y")"
+                fmt="${fmt//<TAGS>/$ntags}"
+                ;;
+            \<TITLE\>)
+                ntitle="$(_list_prettify_fg "$nc" "$ntitle" "y")"
+                fmt="${fmt//<TITLE>/$ntitle}"
+                ;;
+            *)
+                (( --nc ))
+                ;;
+        esac
     done
+
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
@@ -794,35 +803,45 @@ function _list_note {
     local ngrp="$(get_note_group "$nid")"
     local ntitle="$(get_note_title "$nid")"
     local ntags="$(get_note_tags "$nid")"
-    local fmt="$(printf '%s' "$list_fmt" | sed "s/<DELIM>/$list_delim/g")"
-    for i in `printf '%s' "$fmt" | grep '<[a-zA-Z]\+>' -o`; do
+    
+    local fmt="${list_fmt//<DELIM>/$list_delim}"
+
+    while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
         (( ++nc ))
-       if [[ "$i" =~ \<SNO\> ]]; then
-           sno="$(_list_prettify_fg "$nc" "$sno" "y")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<SNO>/$sno/g" )"
-       elif [[ "$i" =~ \<NID\> ]]; then
-           nid="$(_list_prettify_fg "$nc" "$nid")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<NID>/$nid/g" )"
-       elif [[ "$i" =~ \<GROUP\> ]]; then
-           ngrp="$(_list_prettify_fg "$nc" "$ngrp")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<GROUP>/$ngrp/g" )"
-       elif [[ "$i" =~ \<TAGS\> ]]; then
-           ntags="$(_list_prettify_fg "$nc" "$ntags")"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<TAGS>/$ntags/g" )"
-       elif [[ "$i" =~ \<TITLE\> ]]; then
-           ntitle="$(_list_prettify_fg "$nc" "$ntitle")"
-           ntitle="$(printf '%s' "$ntitle" | sed 's/\//\\\//g')"
-           ntitle="$(printf '%s' "$ntitle" | sed 's/&/\\&/g')"
-           fmt="$(printf '%s' "$fmt" | sed -e "s/<TITLE>/$ntitle/g" )"
-       else
-           (( --nc ))
-       fi
+        case "${BASH_REMATCH[1]}" in
+            \<SNO\>)
+                sno="$(_list_prettify_fg "$nc" "$sno" "y")"
+                fmt="${fmt//<SNO>/$sno}"
+                ;;
+            \<NID\>)
+                nid="$(_list_prettify_fg "$nc" "$nid")"
+                fmt="${fmt//<NID>/$nid}"
+                ;;
+            \<GROUP\>)
+                ngrp="$(_list_prettify_fg "$nc" "$ngrp")"
+                fmt="${fmt//<GROUP>/$ngrp}"
+                ;;
+            \<TAGS\>)
+                ntags="$(_list_prettify_fg "$nc" "$ntags")"
+                fmt="${fmt//<TAGS>/$ntags}"
+                ;;
+            \<TITLE\>)
+                ntitle="$(_list_prettify_fg "$nc" "$ntitle")"
+                fmt="${fmt//<TITLE>/$ntitle}"
+                ;;
+            *)
+                (( --nc ))
+                ;;
+        esac
     done
+
     printf '%s' "$fmt"
 }
 
 function get_all_notes {
-    printf '%s' "$(ls "$notes_loc" | sort | tr '\n' ',' | sed 's/,$//')"
+    #FIXME: sorting 
+    local n_l="$(find "$notes_loc" -mindepth 1 -maxdepth 1 -type d -printf '%f,')"
+    printf '%s' "${n_l%,}"
 }
 
 function _list_notes {
@@ -830,27 +849,20 @@ function _list_notes {
     local c=0
     local l=""
     make_header
-    if [ -n "$nids" ]; then
-        for n in `printf '%s' "$nids" | tr ',' '\n'`; do
-            if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
-                continue;
-            fi
-            c="$(( ++c ))"
-            l="$(_list_note "$c" "$n")"
 
-            _list_prettify_bg "$c" "$l"
-        done
-    else
-        for n in `printf '%s' "$(get_all_notes)" | tr ',' '\n'`; do
-            if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
-                continue;
-            fi
-            c="$(( ++c ))"
-            l="$(_list_note "$c" "$n")"
-
-            _list_prettify_bg "$c" "$l"
-        done
+    if [ -z "$nids" ]; then
+        nids="$(get_all_notes)"
     fi
+    
+    for n in ${nids//,/ }; do
+        if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
+            continue;
+        fi
+        c="$(( ++c ))"
+        l="$(_list_note "$c" "$n")"
+
+        _list_prettify_bg "$c" "$l"
+    done
 }
 
 function list_notes {
@@ -893,6 +905,7 @@ function build_row {
     _list_prettify_bg "$row_n" "$fmt"
 }
 
+#TODO
 function list_groups {
     local groups="$1"
     local gl="$db_loc/groups"
