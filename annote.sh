@@ -905,35 +905,37 @@ function build_row {
     _list_prettify_bg "$row_n" "$fmt"
 }
 
-#TODO
 function list_groups {
-    local groups="$1"
+    local groups="$(trim "$1")"
     local gl="$db_loc/groups"
-    local sgl="$(printf '%s' "$gl" | sed 's/\//\\\//g')"
+
     if [ -z "$groups" ]; then
-        groups="$(find "$gl" -type f -name 'notes.lnk' -print | sed \
-            -e "s/^$sgl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
-            tr '\n' ',' | sed 's/,$//')"
+        while IFS= read -r line; do
+            line=${line#$gl/}
+            $groups="$groups,${line////.}"
+        done < <(find "$gl" -type f -name 'notes.lnk' -printf '%h\n')
+        groups="${groups#,}"
     else
         local rgs=""
-        for g in `printf '%s' "$groups" | tr ',' '\n'`; do
+        for g in ${groups//,/ }; do
             if $(group_exists "$g" ); then
                 rgs="$rgs,$g"
             fi
         done
-        groups="$(printf '%s' "$rgs" | sed 's/^,//')"
+        groups="${rgs#,}"
     fi
+
     local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
         build_header "S.No." "Group" "Note ID" "Note Title"
     else
         build_header "S.No." "Group" "Total Notes"
     fi
-    for g in `printf '%s' "$groups" | tr ',' '\n'`; do
+    for g in ${groups//,/ }; do
         local gf="$(get_group_loc "$g")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$gf" ]; then
-                for n in `cat "$gf"`; do
+                for n in $(< "$gf"); do
                     local msg="$(get_note_title "$n")"
                     build_row $((++c)) "$g" "$n" "$msg"
                 done
@@ -941,7 +943,8 @@ function list_groups {
         else
             local tn=""
             if [ -f "$gf" ]; then
-                tn="$(cat "$gf" | wc -l)"
+                tn="$(wc -l < "$gf")"
+                tn="$(trim "$tn")"
             else
                 tn="0"
             fi
@@ -951,6 +954,7 @@ function list_groups {
     done
 }
 
+#TODO
 function list_tags {
     local tags="$1"
     local tl="$db_loc/tags"
