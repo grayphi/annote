@@ -954,35 +954,37 @@ function list_groups {
     done
 }
 
-#TODO
 function list_tags {
-    local tags="$1"
-    local tl="$db_loc/tags"
-    local stl="$(printf '%s' "$tl" | sed 's/\//\\\//g')"
+    local tags="$(trim "$1")"
+
     if [ -z "$tags" ]; then
-        tags="$(find "$tl" -type f -name 'notes.lnk' -print | sed \
-            -e "s/^$stl\///" -e 's/\//./g' -e 's/\.notes\.lnk$//' | \
-            tr '\n' ',' | sed 's/,$//')"
+        while IFS= read -r line; do
+            $tags="$tags,${line#$tags_loc/}"
+        done < <(find "$tags_loc" -mindepth 1 -maxdepth 2 -type f \
+            -name 'notes.lnk' -printf '%h\n')
+        tags="${tags#,}"
     else
         local rts=""
-        for t in `printf '%s' "$tags" | tr ',' '\n'`; do
+        for t in ${tags//,/ }; do
             if $(tag_exists "$t" ); then
                 rts="$rts,$t"
             fi
         done
-        tags="$(printf '%s' "$rts" | sed 's/^,//')"
+        tags="${rts#,}"
     fi
+
     local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
         build_header "S.No." "Tags" "Note ID" "Note Title"
     else
         build_header "S.No." "Tags" "Total Notes"
     fi
-    for t in `printf '%s' "$tags" | tr ',' '\n'`; do
+
+    for t in ${tags//,/ }; do
         local tf="$(get_tag_loc "$t")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$tf" ]; then
-                for n in `cat "$tf"`; do
+                for n in $(< "$tf"); do
                     local msg="$(get_note_title "$n")"
                     build_row $((++c)) "$t" "$n" "$msg"
                 done
@@ -990,7 +992,8 @@ function list_tags {
         else
             local tn=""
             if [ -f "$tf" ]; then
-                tn="$(cat "$tf" | wc -l)"
+                tn="$(wc -l < "$tf")"
+                tn="$(trim "$tn")"
             else
                 tn="0"
             fi
@@ -1001,10 +1004,11 @@ function list_tags {
 }
 
 function open_note {
-    local nid="$1"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
+
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
+
         if [ -f "$nf" ]; then
             if [ "x$flag_no_pager" = "xy" ]; then
                 cat "$nf"
@@ -1022,10 +1026,9 @@ function open_note {
 }
 
 function modify_title {
-    local nid="$1"
-    local t_new="$2"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    t_new="$(printf '%s' "$t_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
+    local t_new="$(trim "$2")"
+
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if [ -n "$t_new" ]; then
             set_note_title "$nid" "$t_new"
@@ -1043,15 +1046,16 @@ function modify_title {
 }
 
 function modify_note {
-    local nid="$1"
-    local note="$2"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    note="$(printf '%s' "$note" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
+    local note="$(trim "$2")"
+
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
+
         if [ "x$flag_append_mode" != "xy" ]; then
             printf '%s' "" > "$nf"
         fi
+
         case "$flag_modify_arg2" in
             "r")
                 log_info "Press 'Ctrl + D' when exit recording to note."
@@ -1084,10 +1088,9 @@ function modify_note {
 }
 
 function modify_group {
-    local nid="$1"
-    local g_new="$2"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    g_new="$(printf '%s' "$g_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
+    local g_new="$(trim "$2")"
+
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if [ -n "$g_new" ]; then
             change_note_group "$nid" "$g_new"
@@ -1106,19 +1109,23 @@ function _add_note_tag {
     local tag="$2"
     local ntf="$notes_loc/$nid/$nid.tags"
     local tnf="$(get_tag_loc "$tag")/notes.lnk"
+
     printf '%s\n' "$nid" >> "$tnf"
     printf '%s\n' "$tag" >> "$ntf"
 }
 
 function add_note_tags {
     local nid="$1"
-    local n_tags="$2"
-    n_tags="$(get_tags "$n_tags")"
-    n_tags="$(printf '%s' ",$n_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
-        -e 's/^,//' -e 's/,$//')"
+
+    local n_tags=",$(get_tags "$2"),"
+    n_tags="${n_tags//,$def_tag,/,}"
+    n_tags="${n_tags//+(,)/,}"
+    n_tags="${n_tags#,}"
+    n_tags="${n_tags%,}"
+
     if [ -n "$n_tags" ]; then
         _delete_note_tag "$nid" "$def_tag"
-        for t in `printf '%s' "$n_tags" | tr ',' '\n'`; do
+        for t in ${n_tags//,/ }; do
             _add_note_tag "$nid" "$t"
         done
     fi
@@ -1127,20 +1134,27 @@ function add_note_tags {
 function _delete_note_tag {
     local nid="$1"
     local tag="$2"
+
     local ntf="$notes_loc/$nid/$nid.tags"
     local tnf="$(get_tag_loc "$tag")/notes.lnk"
-    sed -i -e "/^$nid$/d" "$tnf"
-    sed -i -e "/^$tag$/d" "$ntf"
+
+    sed -i.tmp -e "/^$nid$/d" "$tnf"
+    sed -i.tmp -e "/^$tag$/d" "$ntf"
+    rm "$tnf.tmp" 2>/dev/null
+    rm "$ntf.tmp" 2>/dev/null
 }
 
 function delete_note_tags {
     local nid="$1"
-    local d_tags="$2"
-    d_tags="$(get_tags "$d_tags")"
-    d_tags="$(printf '%s' ",$d_tags," | sed -e "s/,$def_tag,//g" -e 's/,,/,/g' \
-        -e 's/^,//' -e 's/,$//')"
+    local d_tags=",$(get_tags "$2"),"
+
+    d_tags="${d_tags//,$def_tag,/,}"
+    d_tags="${d_tags//+(,)/,}"
+    d_tags="${d_tags#,}"
+    d_tags="${d_tags%,}"
+
     if [ -n "$d_tags" ]; then
-        for t in `printf '%s' "$d_tags" | tr ',' '\n'`; do
+        for t in ${d_tags//,/ }; do
             _delete_note_tag "$nid" "$t"
         done
     fi
@@ -1152,26 +1166,28 @@ function delete_note_tags {
 
 function change_note_tags {
     local nid="$1"
-    local t_new="$2"
-    local t_old="$(get_note_tags "$nid")"
-    t_new="$(get_tags "$t_new")"
-    t_old="$(printf '%s' "$t_old" | tr ',' '\n' | sort -u | tr '\n' ',' |\
-        sed 's/,$//')"
-    t_new="$(printf '%s' "$t_new" | tr ',' '\n' | sort -u | tr '\n' ',' | \
-        sed 's/,$//')"
+
+    local t_old=",$(get_note_tags "$nid"),"
+    local t_new="$(get_tags "$2")"
+
     local a_tags=""
     local d_tags=""
     local c_tags=""
-    for t in `printf '%s' "$t_new" | tr ',' '\n'`; do
-        if [[ ",$t_old," =~ ,$t, ]]; then
+
+    for t in ${t_new//,/ }; do
+        if [[ $t_old =~ ,$t, ]]; then
             c_tags="$c_tags,$t"
-            t_old="$(printf '%s' ",$t_old," | sed -e "s/,$t,/,/" -e 's/^,//' \
-                -e 's/,$//')"
+            t_old="${t_old//,$t,/,}"
         else
             a_tags="$a_tags,$t"
         fi
     done
-    d_tags="$t_old"
+
+    d_tags="${t_old#,}"
+    d_tags="${d_tags%,}"
+    a_tags="${a_tags#,}"
+    c_tags="${c_tags#,}"
+
     case $flag_modify_tag_mode in
         "a"|"")
             add_note_tags "$nid" "$a_tags"
@@ -1187,10 +1203,8 @@ function change_note_tags {
 }
 
 function modify_tags {
-    local nid="$1"
-    local t_new="$2"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    t_new="$(printf '%s' "$t_new" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
+    local t_new="$(trim "$2")"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if [ -n "$t_new" ]; then
             change_note_tags "$nid" "$t_new"
@@ -1205,29 +1219,32 @@ function modify_tags {
 }
 
 function delete_note {
-    local nid="$1"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
+
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nl="$notes_loc/$nid"
         delete_note_tags "$nid" "$(get_note_tags "$nid")"
         change_note_group "$nid" 
-        local gl="$(get_group_loc "$def_group")"
-        local tl="$(get_tag_loc "$def_tag")"
-        local gf="$gl/notes.lnk"
-        local tf="$tl/notes.lnk"
-        sed -i -e "/^$nid$/d" "$gf"
-        sed -i -e "/^$nid$/d" "$tf"
+
+        local gf="$(get_group_loc "$def_group")/notes.lnk"
+        local tf="$(get_tag_loc "$def_tag")/notes.lnk"
+        sed -i.tmp -e "/^$nid$/d" "$gf"
+        sed -i.tmp -e "/^$nid$/d" "$tf"
+
+        rm "$gf.tmp" 2> /dev/null
+        rm "$tf.tmp" 2> /dev/null
+
         rm -rf "$nl"
     fi
 }
 
 function delete_tag {
-    local tag="$1"
-    tag="$(printf '%s' "$tag" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local tag="$(trim "$1")"
+
     if [ -n "$tag" ] && $(tag_exists "$tag"); then
         local tf="$(get_tag_loc "$tag")"
         local tnf="$tf/notes.lnk"
-        for nid in `cat "$tnf"`; do
+        for nid in $(< "$tnf"); do
             delete_note_tags "$nid" "$tag"
         done
         rm -rf "$tf"
@@ -1235,27 +1252,38 @@ function delete_tag {
 }
 
 function get_subgroups {
-    local grp="$1"
     local sgrps=""
+    local grp="${1//+(.)/.}"
+
+    grp="$(trim "$grp")"
+    grp="${grp#.}"
+    grp="${grp%.}"
+
     if $(group_exists "$grp"); then
         local gl="$(get_group_loc "$grp")"
-        local gsl="$(printf '%s' "$groups_loc" | sed 's/\//\\\//g')"
-        sgrps="$(find "$gl" -mindepth 1 -type d | sed -e "s/^$gsl\///" \
-            -e 's/\//./g' | tr '\n' ',' | sed 's/,$//')"
+        gl="${gl%/}"
+
+        while IFS= read -r line; do
+            line="${line#$gl/}"
+            sgrps="$sgrps,${line////.}"
+        done < <(find "$gl" -mindepth 1 -type f -name 'notes.lnk' -printf '%h\n')
+        sgrps="${sgrps#,}"
     fi
     printf '%s' "$sgrps"
 }
 
 function delete_group {
-    local fqgn="$1"
-    fqgn="$(printf '%s' "$fqgn" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local fqgn="$(trim "$1")"
+
     if [ -n "$fqgn" ] && $(group_exists "$fqgn"); then
         local sgrps="$(get_subgroups "$fqgn")"
-        for cg in `printf '%s' "$sgrps,$fqgn" | tr ',' '\n'`; do
+
+        for cg in ${sgrps//,/ } $fqgn; do
             local gl="$(get_group_loc "$cg")"
             local nf="$gl/notes.lnk"
+
             if [ -f "$nf" ]; then 
-                for nid in `cat "$nf"`; do
+                for nid in $(< "$nf"); do
                     if [ "x$flag_nosafe_grpdel" = "xy" ]; then
                         delete_note "$nid"
                     else
@@ -1269,18 +1297,19 @@ function delete_group {
 }
 
 function find_tags {
-    local tpat="$(printf '%s' "$1" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local tpat="$(trim "$1")"
     local tags=""
-    local stl="$(printf '%s' "$tags_loc" | sed 's/\//\\\//g')"
     local apat="*"
+
     if [ "x$flag_strict_find" = "xy" ]; then
         apat=""
     fi
     if [ -n "$tpat" ]; then
         tags="$(find "$tags_loc"  -mindepth 1 -maxdepth 1 -type d \
-            -name "$apat$tpat$apat" -print | sed -e "s/^$stl\///" \
-            -e 's/\/$//' | tr '\n' ',' | sed 's/,$//')"
+            -name "$apat$tpat$apat" -printf '%f,')"
+        tags="${tags%,}"
     fi
+
     if [ -n "$tags" ]; then
         list_tags "$tags"
     else
@@ -1289,18 +1318,24 @@ function find_tags {
 }
 
 function find_groups {
-    local gpat="$(printf '%s' "$1" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local gpat="$(trim "$1")"
     local groups=""
-    local sgl="$(printf '%s' "$groups_loc" | sed 's/\//\\\//g')"
+
     if [ "x$flag_strict_find" != "xy" ]; then
-        gpat="*$(printf '%s' "$gpat" | sed 's/\./*.*/g')*"
+        gpat="*${gpat//./*.*}*"
     fi
-    gpat="$(printf '%s' "$gpat" | sed 's/\./\//g')"
+    gpat="${gpat//.//}"
+
     if [ -n "$gpat" ]; then
-        groups="$(find "$groups_loc"  -mindepth 1 -type d \
-            -path "$groups_loc/$gpat" -print | sed -e "s/^$sgl\///" \
-            -e 's/\/$//' -e 's/\//./g' | tr '\n' ',' | sed 's/,$//')"
+        while IFS= read -r line; do
+            line="${line#$group_loc/}"
+            line="${line%/}"
+            groups="$groups,${line////.}"
+        done < <(find "$groups_loc" -mindepth 1 -type d \
+            -path "$groups_loc/$gpat" -print)
+        groups="${groups#,}"
     fi
+
     if [ -n "$groups" ]; then
         list_groups "$groups"
     else
@@ -1308,6 +1343,7 @@ function find_groups {
     fi
 }
 
+#TODO
 function find_notes {
     local stxt="$1"
     local find_with_tags="$2"           # comma seperated tags
