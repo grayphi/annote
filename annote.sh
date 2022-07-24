@@ -1490,13 +1490,12 @@ function find_notes {
 }
 
 function is_archived {
-    local nid="$1"
+    local nid="$(trim "$1")"
     local flag="false"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local tags="$(get_note_tags "$nid")"
         local regex=",$archived,"
-        if [[ ",$tags," =~ $regex ]]; then
+        if [[ ,$tags, =~ $regex ]]; then
             flag="true"
         fi
     fi
@@ -1504,8 +1503,7 @@ function is_archived {
 }
 
 function archive_note {
-    local nid="$1"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if ! $(is_archived "$nid"); then
             add_note_tags "$nid" "$archived"
@@ -1517,8 +1515,7 @@ function archive_note {
 }
 
 function unarchive_note {
-    local nid="$1"
-    nid="$(printf '%s' "$nid" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+    local nid="$(trim "$1")"
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         if $(is_archived "$nid"); then
             delete_note_tags "$nid" "$archived"
@@ -1536,27 +1533,45 @@ function list_archive {
     flag_list_find="$v_old"
 }
 
+function _get_max {
+    local max='-1'
+
+    for i in $@; do
+        [[ $max -lt $i ]] && max=$i
+    done
+
+    printf '%s' "$max"
+}
+
+function _get_min {
+    local min="$1"
+    shift
+
+    for i in $@; do
+        [[ $min -gt $i ]] && min=$i
+    done
+
+    printf '%s' "$min"
+}
+
 function push_op {
-    local pos="$(printf '%s\n' "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
-    if [ "x$pos" = "x" ]; then
-        pos="-1"
-    fi
+    local pos="$(_get_max ${!mutex_ops[@]})"
+
     pos="$(( ++pos ))"
     mutex_ops["$pos"]="$1"
 }
 
 function push_op_args {
-    local pos="$(printf '%s\n' "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | tail -n1)"
-    if [ "x$pos" = "x" ]; then
-        pos="-1"
-    fi
+    local pos="$(_get_max ${!mutex_ops_args[@]})"
+
     pos="$(( ++pos ))"
     mutex_ops_args[$pos]="$1"
 }
 
 function pop_op {
     v_pop_op=""
-    local pos="$(printf '%s\n' "${!mutex_ops[@]}" | tr ' ' '\n' | sort -n | head -n1)"
+    local pos="$(_get_min ${!mutex_ops[@]})"
+
     if [ "x$pos" != "x" ]; then
         v_pop_op="${mutex_ops[$pos]}"
         unset mutex_ops["$pos"]
@@ -1565,8 +1580,8 @@ function pop_op {
 
 function pop_op_args {
     v_pop_op_args=""
-    local pos="$(printf '%s\n' "${!mutex_ops_args[@]}" | tr ' ' '\n' | sort -n | \
-        head -n1)"
+    local pos="$(_get_min ${!mutex_ops_args[@]})"
+
     if [ "x$pos" != "x" ]; then
         v_pop_op_args="${mutex_ops_args[$pos]}"
         unset mutex_ops_args["$pos"]
@@ -1863,8 +1878,7 @@ function _parse_args_modify {
         push_op_args "$nid"
         push_op_args "$tags"
     fi  
-    if [ "x$flag_t" = "x" ] && [ "x$flag_g" = "x" ] && \
-        [ "x$flag_T" = "x" ]; then
+    if [ "x$flag_t" = "x" ] && [ "x$flag_g" = "x" ] && [ "x$flag_T" = "x" ]; then
         push_op "modify_n"
         push_op_args "$nid"
         push_op_args "$note"
