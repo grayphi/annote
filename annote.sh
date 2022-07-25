@@ -8,24 +8,24 @@ __NAME__='annote'
 __VERSION__='2.1'
 
 # variables
-c_red=$(tput setaf 196)
-c_cyan=$(tput setaf 44)
-c_light_green_2=$(tput setaf 10)
-c_yellow=$(tput setaf 190)
-c_orange=$(tput setaf 202)
-c_light_blue=$(tput setaf 42)
-c_light_green=$(tput setaf 2)
-c_light_red=$(tput setaf 9)
+c_red="$(tput setaf 196)"
+c_cyan="$(tput setaf 44)"
+c_light_green_2="$(tput setaf 10)"
+c_yellow="$(tput setaf 190)"
+c_orange="$(tput setaf 202)"
+c_light_blue="$(tput setaf 42)"
+c_light_green="$(tput setaf 2)"
+c_light_red="$(tput setaf 9)"
 
-b_black=$(tput setab 16)
-b_dark_black=$(tput setab 233)
-b_light_black=$(tput setab 236)
+b_black="$(tput setab 16)"
+b_dark_black="$(tput setab 233)"
+b_light_black="$(tput setab 236)"
 
-s_bold=$(tput bold)
-s_dim=$(tput dim)
-s_underline=$(tput smul)
+s_bold="$(tput bold)"
+s_dim="$(tput dim)"
+s_underline="$(tput smul)"
 
-p_reset=$(tput sgr0)
+p_reset="$(tput sgr0)"
 
 config_file="$(realpath ~)/.annote/annote.config"
 u_conf_file=""
@@ -47,23 +47,23 @@ archived="ARCHIVED"
 declare -A mutex_ops=()
 declare -A mutex_ops_args=()
 
-flag_new_arg4=""            # empty for editor, r -> record script, c -> content, f -> file
-flag_modify_arg2=""         # empty for editor, r -> record script, c -> content, f -> file
-flag_append_mode="y"        # 'y' --> append, empty to overwrite
-flag_gui_editor=""          # 'y' --> use gui editor, empty use cli
-flag_disable_warnings=""    # 'y' --> disable warnings, empty to enable
-flag_verbose=""             # 'y' --> be verbose, empty no verbose
-flag_no_ask=""              # 'y' --> no ask, empty to ask
-flag_no_pretty=""           # 'y' --> no pretty, empty to prettify
-flag_no_pager=""            # 'y' --> no pager, empty to use pager
-flag_nosafe_grpdel=""       # 'y' --> enable nosafe, empty for safe
-flag_open_edit=""           # 'y' --> edit, empty to view only pager
-flag_modify_tag_mode=""     # 'o' --> overwrite, 'd' -->delete, 'a' or empty append
-flag_search_mode=""         # 't' --> title only, 'n' --> note only, blank to search on both
-flag_strict_find=""         # 'y' --> to matches strictly, blank for anywhere search
-flag_list_find=""           # 'y' --> to show list of notes not count, blank for count
-flag_show_archived=""       # 'y' --> include archived notes into list/find, blank to exclude
-flag_debug_mutex_ops=""     # 'y' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
+flag_new_arg4=""                            # empty for editor, r -> record script, c -> content, f -> file
+flag_modify_arg2=""                         # empty for editor, r -> record script, c -> content, f -> file
+flag_append_mode="y"                        # 'y' --> append, empty to overwrite
+flag_gui_editor=""                          # 'y' --> use gui editor, empty use cli
+flag_disable_warnings=""                    # 'y' --> disable warnings, empty to enable
+flag_verbose=""                             # 'y' --> be verbose, empty no verbose
+flag_no_ask=""                              # 'y' --> no ask, empty to ask
+flag_no_pretty=""                           # 'y' --> no pretty, empty to prettify
+flag_no_pager=""                            # 'y' --> no pager, empty to use pager
+flag_nosafe_grpdel=""                       # 'y' --> enable nosafe, empty for safe
+flag_open_edit=""                           # 'y' --> edit, empty to view only pager
+flag_modify_tag_mode=""                     # 'o' --> overwrite, 'd' -->delete, 'a' or empty append
+flag_search_mode=""                         # 't' --> title only, 'n' --> note only, blank to search on both
+flag_strict_find=""                         # 'y' --> to matches strictly, blank for anywhere search
+flag_list_find=""                           # 'y' --> to show list of notes not count, blank for count
+flag_show_archived=""                       # 'y' --> include archived notes into list/find, blank to exclude
+flag_debug_mutex_ops="$DBG_MUTEX_OPS"       # 'y' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
 ERR_DATE=2
@@ -141,7 +141,8 @@ function as_underline {
 }
 
 function log_plain {
-    printf "$*\n" '' #FIXME: check this line later
+    #FIXME: need to avoid putting data into format field
+    printf "$*\n" ''
 }
 
 function log {
@@ -182,11 +183,11 @@ function log_verbose_info {
 }
 
 function prompt {
-    log "$(as_cyan "$1")"
+    as_cyan "$1"
 }
 
 function prompt_error {
-    log "$(as_red "$(as_bold "$1")")"
+    as_red "$(as_bold "$1")"
 }
 
 function __banner__ {
@@ -336,14 +337,14 @@ function version {
 function trim {
     local v="$1"
 
-    v=${v##+([[:space:]])}
-    v=${v%%+([[:space:]])}
+    v="${v##+([[:space:]])}"
+    v="${v%%+([[:space:]])}"
 
     printf '%s' "$v"
 }
 
 function import_config {
-    local imf=$(trim "$1")
+    local imf="$(trim "$1")"
     if [ -n "$imf" ] && [ -f "$imf" ] && [ -r "$imf" ]; then
         mkdir -p "$(dirname "$config_file")"
         touch "$config_file"
@@ -357,7 +358,7 @@ function import_config {
 }
 
 function export_config {
-    local exf=$(trim "$1")
+    local exf="$(trim "$1")"
     if [ -n "$exf" ]; then
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
             -e 's/=\s\+/=/' -e '/^$/d' "$config_file"  > "$exf"
@@ -404,7 +405,7 @@ function _set_key {
 }
 
 function _conf_file {
-    local cfile=$(trim "$1")
+    local cfile="$(trim "$1")"
     if [ -n "$cfile" ] && [ -f "$cfile" ] && [ -r "$cfile" ]; then
         while IFS== read -r key value; do
             _set_key "$(trim "$key")" "$(trim "$value")"
@@ -463,8 +464,7 @@ function initialize_conf {
 function note_exists {
     local nid="$1"
     local retval="false"
-    local f=$(find $notes_loc -maxdepth 1 -type d -name "$nid" -print | wc -l)
-    if [[ "$f" -gt 0 ]]; then
+    if [ -n "$nid" ] && [ -d "$notes_loc/$nid" ]; then
         retval="true"
     fi
     printf '%s' "$retval"
@@ -473,8 +473,7 @@ function note_exists {
 function tag_exists {
     local tname="$1"
     local retval="false"
-    local c=$(find $tags_loc -maxdepth 1 -type d -name "$tname" -print | wc -l)
-    if [[ "$c" -gt 0 ]]; then
+    if [ -n "$tname" ] && [ -d "$tags_loc/$tname" ]; then
         retval="true"
     fi
     printf '%s' "$retval"
@@ -490,14 +489,13 @@ function group_exists {
 }
 
 function get_group {
-    local group=${1//[^A-Za-z0-9._ ]/}
-    group=$(trim "$group")
-    group=${group//+([[:space:]])/_}
-    group=${group//+(.)/.}
-    group=${group//+(_)/_}
-    group=${group//?(_).?(_)/.}
-    group=${group#.}
-    group=${group%.}
+    local group="${1//[^A-Za-z0-9._ ]/}"
+    group="$(trim "$group")"
+    group="${group//+([[:space:]])/_}"
+    group="${group//+(.)/.}"
+    group="${group//+(_)/_}"
+    group="${group#.}"
+    group="${group%.}"
 
     if [ -z "$group" ]; then
         group="$def_group"
@@ -506,14 +504,13 @@ function get_group {
 }
 
 function get_tags {
-    local tags=${1//[^A-Za-z0-9,_ ]/}
-    tags=$(trim "$tags")
-    tags=${tags//+([[:space:]])/_}
-    tags=${tags//+(,)/,}
-    tags=${tags//+(_)/_}
-    tags=${tags//?(_),?(_)/,}
-    tags=${tags#,}
-    tags=${tags%,}
+    local tags="${1//[^A-Za-z0-9,_ ]/}"
+    tags="$(trim "$tags")"
+    tags="${tags//+([[:space:]])/_}"
+    tags="${tags//+(,)/,}"
+    tags="${tags//+(_)/_}"
+    tags="${tags#,}"
+    tags="${tags%,}"
 
     if [ -z "$tags" ]; then
         tags="$def_tag"
@@ -535,11 +532,15 @@ function get_tag_loc {
     printf '%s' "$tl"
 }
 
+function __gen_id {
+    printf '%s' "n$(date '+%s')"
+}
+
 function _gen_note_id {
-    local nid="n$(date '+%s')"
+    local nid="$(__gen_id)"
     while [ -d "$notes_loc/$nid" ]; do
-        sleep "0.13s"
-        nid="$(_gen_note_id)"
+        sleep "0.07s"
+        nid="$(__gen_id)"
     done
     printf '%s' "$nid"
 }
@@ -911,7 +912,7 @@ function list_groups {
 
     if [ -z "$groups" ]; then
         while IFS= read -r line; do
-            line=${line#$gl/}
+            line="${line#$gl/}"
             $groups="$groups,${line////.}"
         done < <(find "$gl" -type f -name 'notes.lnk' -printf '%h\n')
         groups="${groups#,}"
@@ -1034,7 +1035,7 @@ function modify_title {
             set_note_title "$nid" "$t_new"
         else
             local t_old="$(get_note_title "$nid")"
-            log_info "Current title: "$(as_bold "$t_old")""
+            log_info "Current title: $(as_bold "$t_old")"
             read -r -p "$(prompt "Enter new title for note:") " t_new
             while [ -z "$t_new" ]; do
                 read -r -p "$(prompt_error \
@@ -1096,7 +1097,7 @@ function modify_group {
             change_note_group "$nid" "$g_new"
         else
             local g_old="$(get_note_group "$nid")"
-            log_info "Current group: "$(as_bold "$g_old")""
+            log_info "Current group: $(as_bold "$g_old")"
             read -r -p "$(prompt \
                 "Enter group (use '.' for subgroups) (enter to skip):") " g_new
             change_note_group "$nid" "$g_new"
@@ -1188,7 +1189,7 @@ function change_note_tags {
     a_tags="${a_tags#,}"
     c_tags="${c_tags#,}"
 
-    case $flag_modify_tag_mode in
+    case "$flag_modify_tag_mode" in
         "a"|"")
             add_note_tags "$nid" "$a_tags"
             ;;
@@ -1210,7 +1211,7 @@ function modify_tags {
             change_note_tags "$nid" "$t_new"
         else
             local t_old="$(get_note_tags "$nid")"
-            log_info "Current tags: "$(as_bold "$t_old")""
+            log_info "Current tags: $(as_bold "$t_old")"
             read -r -p "$(prompt \
                 "Enter tags (',' seperated) (enter to skip):") " t_new
             change_note_tags "$nid" "$t_new"
@@ -1538,7 +1539,7 @@ function _get_max {
     local max='-1'
 
     for i in $@; do
-        [[ $max -lt $i ]] && max=$i
+        [[ "$max" -lt "$i" ]] && max="$i"
     done
 
     printf '%s' "$max"
@@ -1549,7 +1550,7 @@ function _get_min {
     shift
 
     for i in $@; do
-        [[ $min -gt $i ]] && min=$i
+        [[ "$min" -gt "$i" ]] && min="$i"
     done
 
     printf '%s' "$min"
@@ -1566,7 +1567,7 @@ function push_op_args {
     local pos="$(_get_max ${!mutex_ops_args[@]})"
 
     pos="$(( ++pos ))"
-    mutex_ops_args[$pos]="$1"
+    mutex_ops_args["$pos"]="$1"
 }
 
 function pop_op {
