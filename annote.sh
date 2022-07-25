@@ -1265,9 +1265,9 @@ function get_subgroups {
         gl="${gl%/}"
 
         while IFS= read -r line; do
-            line="${line#$gl/}"
+            line="${line#$groups_loc/}"
             sgrps="$sgrps,${line////.}"
-        done < <(find "$gl" -mindepth 1 -type f -name 'notes.lnk' -printf '%h\n')
+        done < <(find "$gl" -mindepth 2 -type f -name 'notes.lnk' -printf '%h\n')
         sgrps="${sgrps#,}"
     fi
     printf '%s' "$sgrps"
