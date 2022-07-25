@@ -1343,145 +1343,146 @@ function find_groups {
     fi
 }
 
-#TODO
 function find_notes {
-    local stxt="$1"
-    local find_with_tags="$2"           # comma seperated tags
-    local find_with_group="$3"          # fqgn
-    local find_created_on="$4"          # range seperated with comma
-    local find_modified="$5"            # range seperated with comma
+    local stxt="$(trim "$1")"
+    local find_with_tags="$(trim "$2")"           # comma seperated tags
+    local find_with_group="$(trim "$3")"          # fqgn
+    local find_created_on="$(trim "$4")"          # range seperated with comma
+    local find_modified="$(trim "$5")"            # range seperated with comma
     local notes=""
-    local snl="$(printf '%s' "$notes_loc" | sed 's/\//\\\//g')"
-    stxt="$(printf '%s' "$stxt" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-    find_with_tags="$(printf '%s' "$find_with_tags" | sed -e 's/^\s\+//' \
-        -e 's/\s\+$//')"
-    find_with_group="$(printf '%s' "$find_with_group" | sed -e 's/^\s\+//' \
-        -e 's/\s\+$//')"
-    find_created_on="$(printf '%s' "$find_created_on" | sed -e 's/^\s\+//' \
-        -e 's/\s\+$//')"
-    find_modified="$(printf '%s' "$find_modified" | sed -e 's/^\s\+//' \
-        -e 's/\s\+$//')"
+
     if [ -n "$stxt" ] && [ "x$flag_search_mode" = "xt" ]; then
         notes="$(find "$notes_loc" -type f -iname "*.title" -exec grep \
-            -ilFe "$stxt" {} \; | sed -e "s/^$snl\///" | cut -d/ -f1 | \
-            sort -u | tr '\n' ',' | sed 's/,$//')"
+            -isqFe "$stxt" {} \; -printf '%f,')"
+        notes="${notes//.title/}"
     elif [ -n "$stxt" ] && [ "x$flag_search_mode" = "xn" ]; then
         notes="$(find "$notes_loc" -type f -iname "*.note" -exec grep \
-            -ilFe "$stxt" {} \; | sed -e "s/^$snl\///" | cut -d/ -f1 | \
-            sort -u | tr '\n' ',' | sed 's/,$//')"
+            -isqFe "$stxt" {} \; -printf '%f,')"
+        notes="${notes//.note/}"
     elif [ -n "$stxt" ]; then
-        notes="$(find "$notes_loc" -type f \( -iname "*.note" -o \
-            -iname "*.title" \) -exec grep -ilFe "$stxt" {} \; | sed \
-            -e "s/^$snl\///" |cut -d/ -f1 | sort -u | tr '\n' ',' | \
-            sed 's/,$//')"
+        while IFS= read -r nid; do
+            if grep -isqFe "$stxt" "$notes_loc/$nid/$nid.title" || grep -isqFe \
+                "$stxt" "$notes_loc/$nid/$nid.note"; then
+                notes="$nid,$notes"
+            fi
+        done < <(find "$notes_loc" -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
     fi
+    notes="${notes%,}"
+
     if [ -n "$find_with_group" ] && [ -n "$notes" ]; then
         if [ "x$flag_strict_find" = "xy" ]; then
+            shopt -q nocasematch && shopt -u nocasematch
             if $(group_exists "$find_with_group"); then
-                for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+                local gnote=""
+                for n in ${notes//,/ }; do
                     local g="$(get_note_group "$n")"
-                    if [ "x$g" != "x$find_with_group" ]; then
-                        notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                            -e 's/^,//' -e 's/,$//')"
+                    if [ "x$g" == "x$find_with_group" ]; then
+                        gnote="$gnote,$n"
                     fi
                 done
+                notes="${gnote#,}"
             else
                 notes=""
             fi
         else
-            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+            local gnotes=""
+            local p="${find_with_group//./.*[.].*}"
+            shopt -q nocasematch || shopt -s nocasematch
+            for n in ${notes//,/ }; do
                 local g="$(get_note_group "$n")"
-                local p="$(printf '%s' "$find_with_group" | sed 's/\./*.*/g')"
-                if [[ "$(printf '%s' "$g" | grep -i "$p" | wc -l)" -eq 0 ]]; then
-                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                        -e 's/^,//' -e 's/,$//')"
+                if [[ $g =~ $p ]]; then
+                    gnotes="$gnotes,$n"
                 fi
             done
+            notes="${gnotes#,}"
         fi
     fi
+
     if [ -n "$find_with_tags" ] && [ -n "$notes" ]; then
         if [ "x$flag_strict_find" = "xy" ]; then
-            for t in `printf '%s' "$find_with_tags" | tr ',' '\n'`; do
-                t="$(printf '%s' "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+            shopt -q nocasematch && shopt -u nocasematch
+            for t in ${find_with_tags//,/ }; do
                 if $(tag_exists "$t"); then
-                    for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+                    local tnotes=""
+                    for n in ${notes//,/ }; do
                         local nt="$(get_note_tags "$n")"
-                        if [[ "$(printf '%s' ",$nt," | grep ",$t," | wc -l)" \
-                            -eq 0 ]]; then
-                            notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                                -e 's/^,//' -e 's/,$//')"
+                        if [[ ,$nt, =~ ,$t, ]]; then
+                            tnotes="$tnotes,$n"
                         fi
                     done
+                    notes="${tnotes#,}"
                 else
                     notes=""
                     break
                 fi
             done
         else
-            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+            local tnotes=""
+            shopt -q nocasematch || shopt -s nocasematch
+            for n in ${notes//,/ }; do
                 local nt="$(get_note_tags "$n")"
                 local f=""
-                for t in `printf '%s' "$find_with_tags" | tr ',' '\n'`; do
-                    t="$(printf '%s' "$t" | sed -e 's/^\s\+//' -e 's/\s\+$//')"
-                    if [[ "$(printf '%s' ",$nt," | grep -i ",.*$t.*," | wc -l)"  \
-                        -gt 0 ]]; then
-                        f="y"
+                for t in ${find_with_tags//,/ }; do
+                    if [[ ,$nt, =~ ,.*$t.*, ]]; then
+                        tnotes="$tnotes,$n"
                         break
                     fi
                 done
-                if [ -z "$f" ]; then
-                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                        -e 's/^,//' -e 's/,$//')"
-                fi
             done
+            notes="${tnotes#,}"
         fi
     fi
+
     if [ -n "$find_created_on" ] && [ -n "$notes" ]; then
-        local after="$(printf '%s' "$find_created_on" | cut -d, -f1)"
-        local before="$(printf '%s' "$find_created_on" | cut -d, -f2)"
+        local after="${find_created_on%,*}"
+        local before="${find_created_on#*,}"
         if [ -n "$after" ] && [ -n "$notes" ]; then
-            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+            local tnotes=""
+            for n in ${notes//,/ }; do
                 local d="$(get_metadata "$n" 'Created On')"
                 d="$(date --date="$d" "+%s")"
-                if [[ "$d" -lt "$after" ]]; then
-                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                        -e 's/^,//' -e 's/,$//')"
+                if [[ "$d" -ge "$after" ]]; then
+                    tnotes="$tnotes,$n"
                 fi
             done
+            notes="${tnotes#,}"
         fi
         if [ -n "$before" ] && [ -n "$notes" ]; then
-            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+            local tnotes=""
+            for n in ${notes//,/ }; do
                 local d="$(get_metadata "$n" 'Created On')"
                 d="$(date --date="$d" "+%s")"
-                if [[ "$d" -gt "$before" ]]; then
-                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                        -e 's/^,//' -e 's/,$//')"
+                if [[ "$d" -le "$before" ]]; then
+                    tnotes="$tnotes,$n"
                 fi
             done
+            notes="${tnotes#,}"
         fi
     fi
     if [ -n "$find_modified" ] && [ -n "$notes" ]; then
-        local after="$(printf '%s' "$find_modified" | cut -d, -f1)"
-        local before="$(printf '%s' "$find_modified" | cut -d, -f2)"
+        local after="${find_modified%,*}"
+        local before="${find_modified#*,}"
         if [ -n "$after" ] && [ -n "$notes" ]; then
-            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+            local tnotes=""
+            for n in ${notes//,/ }; do
                 local d="$(get_metadata "$n" 'Modified On')"
                 d="$(date --date="$d" "+%s")"
-                if [[ "$d" -lt "$after" ]]; then
-                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                        -e 's/^,//' -e 's/,$//')"
+                if [[ "$d" -ge "$after" ]]; then
+                    tnotes="$tnotes,$n"
                 fi
             done
+            notes="${tnotes#,}"
         fi
         if [ -n "$before" ] && [ -n "$notes" ]; then
-            for n in `printf '%s' "$notes" | tr ',' '\n'`; do
+            local tnotes=""
+            for n in ${notes//,/ }; do
                 local d="$(get_metadata "$n" 'Modified On')"
                 d="$(date --date="$d" "+%s")"
-                if [[ "$d" -gt "$before" ]]; then
-                    notes="$(printf '%s' ",$notes," | sed -e "s/,$n,/,/" \
-                        -e 's/^,//' -e 's/,$//')"
+                if [[ "$d" -le "$before" ]]; then
+                    tnotes="$tnotes,$n"
                 fi
             done
+            notes="${tnotes#,}"
         fi
     fi
     if [ -n "$notes" ]; then
