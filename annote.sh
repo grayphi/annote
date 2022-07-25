@@ -1329,7 +1329,7 @@ function find_groups {
 
     if [ -n "$gpat" ]; then
         while IFS= read -r line; do
-            line="${line#$group_loc/}"
+            line="${line#$groups_loc/}"
             line="${line%/}"
             groups="$groups,${line////.}"
         done < <(find "$groups_loc" -mindepth 1 -type d \
