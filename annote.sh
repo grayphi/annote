@@ -63,7 +63,7 @@ flag_search_mode=""                         # 't' --> title only, 'n' --> note o
 flag_strict_find=""                         # 'y' --> to matches strictly, blank for anywhere search
 flag_list_find=""                           # 'y' --> to show list of notes not count, blank for count
 flag_show_archived=""                       # 'y' --> include archived notes into list/find, blank to exclude
-flag_debug_mutex_ops="$DBG_MUTEX_OPS"       # 'y' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
+flag_debug_mutex_ops="$DBG_MUTEX_OPS"       # 'y'|'yes' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
 ERR_DATE=2
@@ -2266,13 +2266,16 @@ function parse_args {
 }
 
 function do_actions {
-    if [[ ${#mutex_ops[@]} -gt 1 ]] && [ "x$flag_debug_mutex_ops" = "x" ]; then
+    shopt -q nocasematch || shopt -s nocasematch
+    if [[ ${#mutex_ops[@]} -gt 1 ]] && ! [[ x$flag_debug_mutex_ops =~ ^x(y|yes)$ ]]; then
         log_error "Multiple actions defined, only one can be specified at a time. Check help for details."
         exit $ERR_MUTEX_OPTS
     elif [[ ${#mutex_ops[@]} -eq 0 ]]; then
         log_error "No actions defined. Check help for details."
         exit 0
     fi
+    shopt -q nocasematch && shopt -u nocasematch
+
     while [[ ${#mutex_ops[@]} -ne 0 ]]; do
         local v_pop_op=""
         pop_op
