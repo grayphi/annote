@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.1'
+__VERSION__='2.2'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -211,6 +211,7 @@ function help {
     local fsep_2="$fsep_1\t"
     local fsep_3="$fsep_2\t"
     local fsep_4="$fsep_3\t"
+    local idnt_nl_prefx="$idnt_sc3$fsep_3"
 
     log_plain "${idnt_l1}$(as_bold "-h")|$(as_bold "--help")${fsep_3}Show help and exit."
     log_plain "${idnt_l1}$(as_bold "--info")${fsep_4}Show information and exit."
@@ -242,7 +243,8 @@ function help {
     log_plain "${idnt_sc1}$(as_bold "-c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
     log_plain "${idnt_sc1}$(as_bold "-f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
 
-    log_plain "${idnt_l1}$(as_bold "-l")|$(as_bold "--list")${fsep_3}List out notes from db. Output controlling options can affects it's output."
+    log_plain "${idnt_l1}$(as_bold "-l")|$(as_bold "--list") <$(as_bold "dbs")>${fsep_3}List out notes from db. Output controlling options can affects it's output."
+    log_plain "${idnt_nl_prefx}If '$(as_bold "dbs")' is supplied, then $(as_bold "--list") will only display available db(s)."
 
     log_plain "${idnt_l1}$(as_bold "-e")|$(as_bold "--erase")|$(as_bold "--delete")"
     log_plain "${idnt_sc1}$(as_bold "--note") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Delete note $(as_bold "$(as_light_green "nid")")(id)."
@@ -349,7 +351,7 @@ function import_config {
         mkdir -p "$(dirname "$config_file")"
         touch "$config_file"
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
-            -e 's/=\s\+/=/' -e '/^$/d' "$imf" >> "$config_file"
+            -e 's/=\s\+/=/' -e '/^=\?$/d' "$imf" >> "$config_file"
         log_info "Done importing conf file"
     else
         log_error "Error while importing."
@@ -361,7 +363,7 @@ function export_config {
     local exf="$(trim "$1")"
     if [ -n "$exf" ]; then
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
-            -e 's/=\s\+/=/' -e '/^$/d' "$config_file"  > "$exf"
+            -e 's/=\s\+/=/' -e '/^=\?$/d' "$config_file"  > "$exf"
         log_info "Done exporting conf file"
     else
         log_error "Error while exporting."
@@ -409,7 +411,7 @@ function _conf_file {
     if [ -n "$cfile" ] && [ -f "$cfile" ] && [ -r "$cfile" ]; then
         while IFS== read -r key value; do
             _set_key "$(trim "$key")" "$(trim "$value")"
-        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e '/^$/d' "$cfile")
+        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e '/^=\?$/d' "$cfile")
     fi
 }   
 
@@ -1535,6 +1537,20 @@ function list_archive {
     flag_list_find="$v_old"
 }
 
+function list_dbs {
+    local c=0
+    build_header "S.No." "DB Key" "Location"
+    while IFS= read -r line; do
+        line="${line/#db_loc=/__DEFAULT__=}"
+        line="${line#dbl_key_}"
+        local dbk="${line%%=*}"
+        local dbv="${line#*=}"
+        build_row $((++c)) "$dbk" "$dbv"
+    done < <(sed -n -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
+        -e 's/=\s\+/=/' -e '/^=\?$/d' -e '/^db_loc=/p' -e '/^dbl_key_.*=/p' \
+        "$config_file")
+}
+
 function _get_max {
     local max='-1'
 
@@ -1707,6 +1723,7 @@ function _parse_args_new {
 function _parse_args_list {
     local n1="$#"
     local eflag=0
+    local ldb=0
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in
@@ -1718,12 +1735,20 @@ function _parse_args_list {
                 flag_no_pretty="y"
                 shift
                 ;;
+            "dbs")
+                ldb=1
+                shift
+                ;;
             *)
                 eflag=1
                 ;;
         esac
     done
-    push_op "list"
+    if [[ $ldb -eq 1 ]]; then
+        push_op "list_dbs"
+    else
+        push_op "list"
+    fi
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -2409,6 +2434,9 @@ function do_actions {
                 ;;
             "list_arch")
                 list_archive
+                ;;
+            "list_dbs")
+                list_dbs
                 ;;
             *)
                 log_error "No such action ('$v_pop_op') defined."
