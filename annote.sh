@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.2'
+__VERSION__='2.3'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -254,6 +254,9 @@ function help {
 
     log_plain "${idnt_l1}$(as_bold "-o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Open note $(as_bold "$(as_light_green "nid")")(id) in Pager."
     log_plain "${idnt_sc1}$(as_bold "--edit")${fsep_3}Use Editor instead of Pager to open."
+    log_plain "${idnt_sc1}$(as_bold "--with") [$(as_bold "$(as_light_green "cmd")")]${fsep_3}Use command $(as_bold "$(as_light_green "cmd")") to open note's file($(as_dim 'n_file')). By default, $(as_dim "n_file") will be appended"
+    log_plain "${idnt_nl_prefx}at the end of $(as_bold "$(as_light_green "cmd")"), but if $(as_dim "n_file") needs to be supplied in between, then use '$(as_dim '{}')'"
+    log_plain "${idnt_nl_prefx}in the $(as_bold "$(as_light_green "cmd")") and $(as_dim 'n_file') will replace all occurences of $(as_dim '{}')."
     
     log_plain "${idnt_l1}$(as_bold "-m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note $(as_bold "$(as_light_green "nid")")(id), if none from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") are present, then open note with editor."
     log_plain "${idnt_sc1}$(as_bold "-t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Modify title of note."
@@ -1008,12 +1011,22 @@ function list_tags {
 
 function open_note {
     local nid="$(trim "$1")"
+    local oflag="$2"            # 'w' --> open-with flag, '' --> for no flag, and no arg in $3
+    local arg2_val="$3"         # no triming of this var, use as-is. it's value is based on $2's flag
 
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
 
         if [ -f "$nf" ]; then
-            if [ "x$flag_no_pager" = "xy" ]; then
+            if [ -n "$oflag" ] && [ "x$oflag" = "xw" ]; then
+                local cmd=""
+                if [[ "$arg2_val" =~ \{\} ]]; then
+                    cmd="${arg2_val//\{\}/$nf}"
+                else
+                    cmd="$arg2_val $nf"
+                fi
+                eval "$cmd"
+            elif [ "x$flag_no_pager" = "xy" ]; then
                 cat "$nf"
             elif [ "x$flag_open_edit" = "xy" ]; then
                 if [ "x$flag_gui_editor" = "xy" ]; then
@@ -1727,14 +1740,6 @@ function _parse_args_list {
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in
-            "--stdout")
-                flag_no_pager="y"
-                shift
-                ;;
-            "--no-pretty")
-                flag_no_pretty="y"
-                shift
-                ;;
             "dbs")
                 ldb=1
                 shift
@@ -1919,11 +1924,23 @@ function _parse_args_open {
     local eflag=0
     local nid=""
     local nflag=0
+    local with_arg=""
+    local wflag=0
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
             "--edit")
                 flag_open_edit="y"
+                shift
+                ;;
+            "--with")
+                shift
+                if [[ $# -eq 0 ]]; then
+                    log_error "Missing argument for '--with', Check help for details."
+                    exit $ERR_ARGS
+                fi
+                with_arg="$1"
+                wflag=1
                 shift
                 ;;
             *)
@@ -1941,8 +1958,14 @@ function _parse_args_open {
         log_error "Missing note id."
         exit $ERR_ARGS
     fi
-    push_op "open"
-    push_op_args "$nid"
+    if [[ $wflag  -eq 1 ]]; then
+        push_op "open_cmd"
+        push_op_args "$nid"
+        push_op_args "$with_arg"
+    else
+        push_op "open"
+        push_op_args "$nid"
+    fi
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -2348,6 +2371,16 @@ function do_actions {
                 local v_pop_op_args=""
                 pop_op_args
                 open_note "$v_pop_op_args"
+                ;;
+            "open_cmd")
+                local v_pop_op_args=""
+                local nid=""
+                local with_cmd=""
+                pop_op_args
+                nid="$v_pop_op_args"
+                pop_op_args
+                with_cmd="$v_pop_op_args"
+                open_note "$nid" "w" "$with_cmd"
                 ;;
             "find_t")
                 local v_pop_op_args=""
