@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.3'
+__VERSION__='2.4'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -63,6 +63,8 @@ flag_search_mode=""                         # 't' --> title only, 'n' --> note o
 flag_strict_find=""                         # 'y' --> to matches strictly, blank for anywhere search
 flag_list_find=""                           # 'y' --> to show list of notes not count, blank for count
 flag_show_archived=""                       # 'y' --> include archived notes into list/find, blank to exclude
+flag_no_header=""                           # 'y' --> to remove header from output
+flag_null_sep=""                            # 'y' --> to seperate records by null, empty to seperate by newline
 flag_debug_mutex_ops="$DBG_MUTEX_OPS"       # 'y'|'yes' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
@@ -222,6 +224,8 @@ function help {
     log_plain "${idnt_l1}$(as_bold "--strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
     log_plain "${idnt_l1}$(as_bold "--gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
     log_plain "${idnt_l1}$(as_bold "--no-pretty")${fsep_3}Do not prettify output."
+    log_plain "${idnt_l1}$(as_bold "--no-header")${fsep_3}Do not display header in the output."
+    log_plain "${idnt_l1}$(as_bold "-z")|$(as_bold "-0")${fsep_4}Seperate record(s) by $(as_dim "NULL") character, instead of $(as_dim "NEWLINE")(default)."
     log_plain "${idnt_l1}$(as_bold "--stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
     log_plain "${idnt_l1}$(as_bold "--inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
     log_plain "${idnt_l1}$(as_bold "--delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
@@ -754,7 +758,11 @@ function _list_prettify_bg {
             txt="$(on_dark_black "$txt")"
         fi
     fi
-    printf '%s\n' "$txt"
+    if [ "x$flag_null_sep" = "xy" ]; then
+        printf '%s\0' "$txt"
+    else
+        printf '%s\n' "$txt"
+    fi
 }
 
 function make_header {
@@ -765,8 +773,13 @@ function make_header {
     local ntags="TAGS"
     local nc=0
 
+    if [ "x$flag_no_header" = "xy" ]; then
+        return
+    fi
+
     local fmt="${list_fmt//<DELIM>/$list_delim}"
 
+    #FIXME: infinite loop
     while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
        (( ++nc ))
         case "${BASH_REMATCH[1]}" in
@@ -799,19 +812,32 @@ function make_header {
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
-    printf '%s\n' "$fmt"
+    if [ "x$flag_null_sep" = "xy" ]; then
+        printf '%s\0' "$fmt"
+    else
+        printf '%s\n' "$fmt"
+    fi
 }
 
 function _list_note {
     local sno="$1"
     local nid="$2"
+    local gt_flag="$3"
     local nc=0
     local ngrp="$(get_note_group "$nid")"
     local ntitle="$(get_note_title "$nid")"
     local ntags="$(get_note_tags "$nid")"
     
-    local fmt="${list_fmt//<DELIM>/$list_delim}"
+    if [ -n "$gt_flag" ]; then
+        if [ "x$gt_flag" = "xg" ] && [ -n "$4" ]; then
+            ngrp="$4"
+        elif [ "x$gt_flag" = "xt" ] && [ -n "$4" ]; then
+            ntags="$4"
+        fi
+    fi
 
+    local fmt="${list_fmt//<DELIM>/$list_delim}"
+    #FIXME: infinite loop
     while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
         (( ++nc ))
         case "${BASH_REMATCH[1]}" in
@@ -845,7 +871,6 @@ function _list_note {
 }
 
 function get_all_notes {
-    #FIXME: sorting 
     local n_l="$(find "$notes_loc" -mindepth 1 -maxdepth 1 -type d -printf '%f,')"
     printf '%s' "${n_l%,}"
 }
@@ -859,7 +884,7 @@ function _list_notes {
     if [ -z "$nids" ]; then
         nids="$(get_all_notes)"
     fi
-    
+    #FIXME: sorting 
     for n in ${nids//,/ }; do
         if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
             continue;
@@ -882,6 +907,11 @@ function list_notes {
 function build_header {
     local fmt=""
     local c=0
+
+    if [ "x$flag_no_header" = "xy" ]; then
+        return
+    fi
+
     while [[ $# -gt 0 ]]; do
         local arg="$1"
         shift
@@ -892,7 +922,12 @@ function build_header {
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
-    printf '%s\n' "$fmt"
+
+    if [ "x$flag_null_sep" = "xy" ]; then
+        printf '%s\0' "$fmt"
+    else
+        printf '%s\n' "$fmt"
+    fi
 }
 
 function build_row {
@@ -931,19 +966,21 @@ function list_groups {
         groups="${rgs#,}"
     fi
 
-    local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
-        build_header "S.No." "Group" "Note ID" "Note Title"
+        make_header
     else
         build_header "S.No." "Group" "Total Notes"
     fi
+
+    local c=0;
     for g in ${groups//,/ }; do
         local gf="$(get_group_loc "$g")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$gf" ]; then
                 for n in $(< "$gf"); do
-                    local msg="$(get_note_title "$n")"
-                    build_row $((++c)) "$g" "$n" "$msg"
+                    c="$(( ++c ))"
+                    local ln="$(_list_note "$c" "$n" 'g' "$g")"
+                    _list_prettify_bg "$c" "$ln"
                 done
             fi
         else
@@ -979,20 +1016,21 @@ function list_tags {
         tags="${rts#,}"
     fi
 
-    local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
-        build_header "S.No." "Tags" "Note ID" "Note Title"
+        make_header
     else
         build_header "S.No." "Tags" "Total Notes"
     fi
 
+    local c=0;
     for t in ${tags//,/ }; do
         local tf="$(get_tag_loc "$t")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$tf" ]; then
                 for n in $(< "$tf"); do
-                    local msg="$(get_note_title "$n")"
-                    build_row $((++c)) "$t" "$n" "$msg"
+                    c="$(( ++c ))"
+                    local ln="$(_list_note "$c" "$n" 't' "$t")"
+                    _list_prettify_bg "$c" "$ln"
                 done
             fi
         else
@@ -2245,6 +2283,12 @@ function parse_args {
                 ;;
             "--inc-arch")
                 flag_show_archived="y"
+                ;;
+            "--no-header")
+                flag_no_header="y"
+                ;;
+            "-z"|"-0")
+                flag_null_sep="y"
                 ;;
             "--delim")
                 store_kv_pair "list_delim=$1"
