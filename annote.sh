@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.1'
+__VERSION__='2.5'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -43,6 +43,10 @@ editor_gui="gedit"
 list_delim="  "
 list_fmt="<SNO><DELIM><NID><DELIM><TITLE>"
 archived="ARCHIVED"
+list_sort_type="F"                          # 'L|l' --> latest on top,
+                                            # 'O|o' --> oldest on top,
+                                            # 'M|m' --> recent modified on top
+                                            # 'F|f' --> display as they're found
 
 declare -A mutex_ops=()
 declare -A mutex_ops_args=()
@@ -63,6 +67,8 @@ flag_search_mode=""                         # 't' --> title only, 'n' --> note o
 flag_strict_find=""                         # 'y' --> to matches strictly, blank for anywhere search
 flag_list_find=""                           # 'y' --> to show list of notes not count, blank for count
 flag_show_archived=""                       # 'y' --> include archived notes into list/find, blank to exclude
+flag_no_header=""                           # 'y' --> to remove header from output
+flag_null_sep=""                            # 'y' --> to seperate records by null, empty to seperate by newline
 flag_debug_mutex_ops="$DBG_MUTEX_OPS"       # 'y'|'yes' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
@@ -141,8 +147,7 @@ function as_underline {
 }
 
 function log_plain {
-    #FIXME: need to avoid putting data into format field
-    printf "$*\n" ''
+    printf '%b\n' "$*"
 }
 
 function log {
@@ -211,6 +216,7 @@ function help {
     local fsep_2="$fsep_1\t"
     local fsep_3="$fsep_2\t"
     local fsep_4="$fsep_3\t"
+    local idnt_nl_prefx="$idnt_sc3$fsep_3"
 
     log_plain "${idnt_l1}$(as_bold "-h")|$(as_bold "--help")${fsep_3}Show help and exit."
     log_plain "${idnt_l1}$(as_bold "--info")${fsep_4}Show information and exit."
@@ -221,10 +227,15 @@ function help {
     log_plain "${idnt_l1}$(as_bold "--strict")${fsep_3}Use strict comparisions, exact matches. Effects $(as_bold "find") action."
     log_plain "${idnt_l1}$(as_bold "--gui")${fsep_4}Use GUI Editor when editing note. Effects $(as_bold "new"), and $(as_bold "modify") actions."
     log_plain "${idnt_l1}$(as_bold "--no-pretty")${fsep_3}Do not prettify output."
+    log_plain "${idnt_l1}$(as_bold "--no-header")${fsep_3}Do not display header in the output."
+    log_plain "${idnt_l1}$(as_bold "-z")|$(as_bold "-0")${fsep_4}Seperate record(s) by $(as_dim "NULL") character, instead of $(as_dim "NEWLINE")(default)."
     log_plain "${idnt_l1}$(as_bold "--stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
     log_plain "${idnt_l1}$(as_bold "--inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
     log_plain "${idnt_l1}$(as_bold "--delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
     log_plain "${idnt_l1}$(as_bold "--format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
+    log_plain "${idnt_l1}$(as_bold "--sort-as") [$(as_bold "$(as_light_green "sf")")]${fsep_3}Use sort flag ($(as_bold "$(as_light_green "sf")")) to sort the notes listing. $(as_bold "$(as_light_green "sf")") can be: '$(as_dim 'L')|$(as_dim 'l')', '$(as_dim 'O')|$(as_dim 'o')', '$(as_dim 'F')|$(as_dim 'f')',"
+    log_plain "${idnt_nl_prefx}'$(as_dim 'M')|$(as_dim 'm')'. As $(as_underline "$(as_dim 'L')")atest on the top, $(as_underline "$(as_dim 'O')")ldest on the top, random as they're $(as_underline "$(as_dim 'F')")ound(default),"
+    log_plain "${idnt_nl_prefx}last $(as_underline "$(as_dim 'M')")odified on the top."
 
     log_plain "${idnt_l1}$(as_bold "-C")|$(as_bold "--config")${fsep_3}Manages config, if specified, then atleast one option has to be supplied."
     log_plain "${idnt_sc1}$(as_bold "-i")|$(as_bold "--import") [$(as_bold "$(as_light_green "file")")]${fsep_2}Import config from $(as_bold "$(as_light_green "file")")."
@@ -242,7 +253,8 @@ function help {
     log_plain "${idnt_sc1}$(as_bold "-c")|$(as_bold "--content") [$(as_bold "$(as_light_green "content")")]${fsep_1}Use $(as_bold "$(as_light_green "content")") as note's content."
     log_plain "${idnt_sc1}$(as_bold "-f")|$(as_bold "--file") [$(as_bold "$(as_light_green "file")")]${fsep_2}Record $(as_bold "$(as_light_green "file")") as note's content, use '$(as_bold "-")' to record from $(as_bold "stdin")"
 
-    log_plain "${idnt_l1}$(as_bold "-l")|$(as_bold "--list")${fsep_3}List out notes from db. Output controlling options can affects it's output."
+    log_plain "${idnt_l1}$(as_bold "-l")|$(as_bold "--list") <$(as_bold "dbs")>${fsep_3}List out notes from db. Output controlling options can affects it's output."
+    log_plain "${idnt_nl_prefx}If '$(as_bold "dbs")' is supplied, then $(as_bold "--list") will only display available db(s)."
 
     log_plain "${idnt_l1}$(as_bold "-e")|$(as_bold "--erase")|$(as_bold "--delete")"
     log_plain "${idnt_sc1}$(as_bold "--note") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Delete note $(as_bold "$(as_light_green "nid")")(id)."
@@ -252,6 +264,9 @@ function help {
 
     log_plain "${idnt_l1}$(as_bold "-o")|$(as_bold "--open") [$(as_bold "$(as_light_green "nid")")]${fsep_3}Open note $(as_bold "$(as_light_green "nid")")(id) in Pager."
     log_plain "${idnt_sc1}$(as_bold "--edit")${fsep_3}Use Editor instead of Pager to open."
+    log_plain "${idnt_sc1}$(as_bold "--with") [$(as_bold "$(as_light_green "cmd")")]${fsep_3}Use command $(as_bold "$(as_light_green "cmd")") to open note's file($(as_dim 'n_file')). By default, $(as_dim "n_file") will be appended"
+    log_plain "${idnt_nl_prefx}at the end of $(as_bold "$(as_light_green "cmd")"), but if $(as_dim "n_file") needs to be supplied in between, then use '$(as_dim '{}')'"
+    log_plain "${idnt_nl_prefx}in the $(as_bold "$(as_light_green "cmd")") and $(as_dim 'n_file') will replace all occurences of $(as_dim '{}')."
     
     log_plain "${idnt_l1}$(as_bold "-m")|$(as_bold "--modify")|$(as_bold "--edit") [$(as_bold "$(as_light_green "nid")")]${fsep_1}Edit note $(as_bold "$(as_light_green "nid")")(id), if none from $(as_dim "-r"),$(as_dim "-c"),$(as_dim "-f") are present, then open note with editor."
     log_plain "${idnt_sc1}$(as_bold "-t")|$(as_bold "--title") [$(as_bold "$(as_light_green "title")")]${fsep_2}Modify title of note."
@@ -349,7 +364,7 @@ function import_config {
         mkdir -p "$(dirname "$config_file")"
         touch "$config_file"
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
-            -e 's/=\s\+/=/' -e '/^$/d' "$imf" >> "$config_file"
+            -e 's/=\s\+/=/' -e '/^=\?$/d' "$imf" >> "$config_file"
         log_info "Done importing conf file"
     else
         log_error "Error while importing."
@@ -361,7 +376,7 @@ function export_config {
     local exf="$(trim "$1")"
     if [ -n "$exf" ]; then
         sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
-            -e 's/=\s\+/=/' -e '/^$/d' "$config_file"  > "$exf"
+            -e 's/=\s\+/=/' -e '/^=\?$/d' "$config_file"  > "$exf"
         log_info "Done exporting conf file"
     else
         log_error "Error while exporting."
@@ -398,6 +413,9 @@ function _set_key {
         "list_format")
             list_fmt="$value"
             ;;
+        "list_sort_as")
+            set_sort_as "$value"
+            ;;
         *)
             log_warn "Ignored unknown key: '$key', check config."
             ;;
@@ -409,7 +427,7 @@ function _conf_file {
     if [ -n "$cfile" ] && [ -f "$cfile" ] && [ -r "$cfile" ]; then
         while IFS== read -r key value; do
             _set_key "$(trim "$key")" "$(trim "$value")"
-        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e '/^$/d' "$cfile")
+        done < <(sed -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e '/^=\?$/d' "$cfile")
     fi
 }   
 
@@ -749,7 +767,11 @@ function _list_prettify_bg {
             txt="$(on_dark_black "$txt")"
         fi
     fi
-    printf '%s\n' "$txt"
+    if [ "x$flag_null_sep" = "xy" ]; then
+        printf '%s\0' "$txt"
+    else
+        printf '%s\n' "$txt"
+    fi
 }
 
 function make_header {
@@ -760,32 +782,43 @@ function make_header {
     local ntags="TAGS"
     local nc=0
 
-    local fmt="${list_fmt//<DELIM>/$list_delim}"
+    if [ "x$flag_no_header" = "xy" ]; then
+        return
+    fi
 
-    while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
+    local fmt="${list_fmt//<DELIM>/$list_delim}"
+    local _fmt="$fmt"
+
+    while [[ $_fmt =~ (\<[a-zA-Z]+\>) ]]; do
        (( ++nc ))
         case "${BASH_REMATCH[1]}" in
             \<SNO\>)
                 sno="$(_list_prettify_fg "$nc" "$sno" "y")"
                 fmt="${fmt//<SNO>/$sno}"
+                _fmt="${_fmt//<SNO>/}"
                 ;;
             \<NID\>)
                 nid="$(_list_prettify_fg "$nc" "$nid" "y")"
                 fmt="${fmt//<NID>/$nid}"
+                _fmt="${_fmt//<NID>/}"
                 ;;
             \<GROUP\>)
                 ngrp="$(_list_prettify_fg "$nc" "$ngrp" "y")"
                 fmt="${fmt//<GROUP>/$ngrp}"
+                _fmt="${_fmt//<GROUP>/}"
                 ;;
             \<TAGS\>)
                 ntags="$(_list_prettify_fg "$nc" "$ntags" "y")"
                 fmt="${fmt//<TAGS>/$ntags}"
+                _fmt="${_fmt//<TAGS>/}"
                 ;;
             \<TITLE\>)
                 ntitle="$(_list_prettify_fg "$nc" "$ntitle" "y")"
                 fmt="${fmt//<TITLE>/$ntitle}"
+                _fmt="${_fmt//<TITLE>/}"
                 ;;
             *)
+                _fmt="${_fmt//${BASH_REMATCH[1]}/}"
                 (( --nc ))
                 ;;
         esac
@@ -794,43 +827,63 @@ function make_header {
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
-    printf '%s\n' "$fmt"
+    if [ "x$flag_null_sep" = "xy" ]; then
+        printf '%s\0' "$fmt"
+    else
+        printf '%s\n' "$fmt"
+    fi
 }
 
 function _list_note {
     local sno="$1"
     local nid="$2"
+    local gt_flag="$3"
     local nc=0
     local ngrp="$(get_note_group "$nid")"
     local ntitle="$(get_note_title "$nid")"
     local ntags="$(get_note_tags "$nid")"
     
-    local fmt="${list_fmt//<DELIM>/$list_delim}"
+    if [ -n "$gt_flag" ]; then
+        if [ "x$gt_flag" = "xg" ] && [ -n "$4" ]; then
+            ngrp="$4"
+        elif [ "x$gt_flag" = "xt" ] && [ -n "$4" ]; then
+            ntags="$4"
+        fi
+    fi
 
-    while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
+    local fmt="${list_fmt//<DELIM>/$list_delim}"
+    local _fmt="$fmt"
+
+    while [[ $_fmt =~ (\<[a-zA-Z]+\>) ]]; do
         (( ++nc ))
         case "${BASH_REMATCH[1]}" in
             \<SNO\>)
                 sno="$(_list_prettify_fg "$nc" "$sno" "y")"
                 fmt="${fmt//<SNO>/$sno}"
+                _fmt="${_fmt//<SNO>/}"
                 ;;
             \<NID\>)
                 nid="$(_list_prettify_fg "$nc" "$nid")"
                 fmt="${fmt//<NID>/$nid}"
+                _fmt="${_fmt//<NID>/}"
                 ;;
             \<GROUP\>)
                 ngrp="$(_list_prettify_fg "$nc" "$ngrp")"
                 fmt="${fmt//<GROUP>/$ngrp}"
+                _fmt="${_fmt//<GROUP>/}"
                 ;;
             \<TAGS\>)
                 ntags="$(_list_prettify_fg "$nc" "$ntags")"
                 fmt="${fmt//<TAGS>/$ntags}"
+                _fmt="${_fmt//<TAGS>/}"
                 ;;
             \<TITLE\>)
                 ntitle="$(_list_prettify_fg "$nc" "$ntitle")"
                 fmt="${fmt//<TITLE>/$ntitle}"
+                _fmt="${_fmt//<TITLE>/}"
                 ;;
             *)
+                _fmt="${_fmt//${BASH_REMATCH[1]}/}"
                 (( --nc ))
                 ;;
         esac
@@ -840,9 +893,51 @@ function _list_note {
 }
 
 function get_all_notes {
-    #FIXME: sorting 
     local n_l="$(find "$notes_loc" -mindepth 1 -maxdepth 1 -type d -printf '%f,')"
     printf '%s' "${n_l%,}"
+}
+
+function set_sort_as {
+    local sf="$(trim "$1")"
+    case "$sf" in
+        [Ll])
+            list_sort_type='L'
+            ;;
+        [Mm])
+            list_sort_type='M'
+            ;;
+        [Oo])
+            list_sort_type='O'
+            ;;
+        [Ff])
+            list_sort_type='F'
+            ;;
+        *)
+            log_warn "Ignoring unknown value ('$sf') for list sorting, check help for details."
+            ;;
+    esac
+}
+
+function sort_notes {
+    local nids="$1"
+
+    case "$list_sort_type" in
+        [Oo])
+            nids="$(sort <(printf '%b' "${nids//,/\\n}") | tr '\n' ',')"
+            ;;
+        [Ll])
+            nids="$(sort -r <(printf '%b' "${nids//,/\\n}") | tr '\n' ',')"
+            ;;
+        [mM])
+            nids="$(for n in ${nids//,/ }; do
+                local lm="$(get_metadata "$n" 'Modified On')"
+                lm="$(date --date="$lm" "+%s")"
+                printf '%s %s\0' "$n $lm"
+            done | sort -z -n -r -k2,2 | cut -z -s -d' ' -f1 | tr '\0' ',')"
+            ;;
+    esac
+
+    printf '%s' "${nids%,}"
 }
 
 function _list_notes {
@@ -854,7 +949,9 @@ function _list_notes {
     if [ -z "$nids" ]; then
         nids="$(get_all_notes)"
     fi
-    
+
+    nids="$(sort_notes "$nids")"
+
     for n in ${nids//,/ }; do
         if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
             continue;
@@ -877,6 +974,11 @@ function list_notes {
 function build_header {
     local fmt=""
     local c=0
+
+    if [ "x$flag_no_header" = "xy" ]; then
+        return
+    fi
+
     while [[ $# -gt 0 ]]; do
         local arg="$1"
         shift
@@ -887,7 +989,12 @@ function build_header {
     if [ "x$flag_no_pretty" != "xy" ]; then
         fmt="$(on_black "$fmt")"
     fi
-    printf '%s\n' "$fmt"
+
+    if [ "x$flag_null_sep" = "xy" ]; then
+        printf '%s\0' "$fmt"
+    else
+        printf '%s\n' "$fmt"
+    fi
 }
 
 function build_row {
@@ -926,19 +1033,21 @@ function list_groups {
         groups="${rgs#,}"
     fi
 
-    local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
-        build_header "S.No." "Group" "Note ID" "Note Title"
+        make_header
     else
         build_header "S.No." "Group" "Total Notes"
     fi
+
+    local c=0;
     for g in ${groups//,/ }; do
         local gf="$(get_group_loc "$g")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$gf" ]; then
                 for n in $(< "$gf"); do
-                    local msg="$(get_note_title "$n")"
-                    build_row $((++c)) "$g" "$n" "$msg"
+                    c="$(( ++c ))"
+                    local ln="$(_list_note "$c" "$n" 'g' "$g")"
+                    _list_prettify_bg "$c" "$ln"
                 done
             fi
         else
@@ -974,20 +1083,21 @@ function list_tags {
         tags="${rts#,}"
     fi
 
-    local c=0;
     if [ "x$flag_list_find" = "xy" ]; then
-        build_header "S.No." "Tags" "Note ID" "Note Title"
+        make_header
     else
         build_header "S.No." "Tags" "Total Notes"
     fi
 
+    local c=0;
     for t in ${tags//,/ }; do
         local tf="$(get_tag_loc "$t")/notes.lnk"
         if [ "x$flag_list_find" = "xy" ]; then
             if [ -f "$tf" ]; then
                 for n in $(< "$tf"); do
-                    local msg="$(get_note_title "$n")"
-                    build_row $((++c)) "$t" "$n" "$msg"
+                    c="$(( ++c ))"
+                    local ln="$(_list_note "$c" "$n" 't' "$t")"
+                    _list_prettify_bg "$c" "$ln"
                 done
             fi
         else
@@ -1006,12 +1116,22 @@ function list_tags {
 
 function open_note {
     local nid="$(trim "$1")"
+    local oflag="$2"            # 'w' --> open-with flag, '' --> for no flag, and no arg in $3
+    local arg2_val="$3"         # no triming of this var, use as-is. it's value is based on $2's flag
 
     if [ -n "$nid" ] && $(note_exists "$nid"); then
         local nf="$(get_note "$nid")"
 
         if [ -f "$nf" ]; then
-            if [ "x$flag_no_pager" = "xy" ]; then
+            if [ -n "$oflag" ] && [ "x$oflag" = "xw" ]; then
+                local cmd=""
+                if [[ "$arg2_val" =~ \{\} ]]; then
+                    cmd="${arg2_val//\{\}/$nf}"
+                else
+                    cmd="$arg2_val $nf"
+                fi
+                eval "$cmd"
+            elif [ "x$flag_no_pager" = "xy" ]; then
                 cat "$nf"
             elif [ "x$flag_open_edit" = "xy" ]; then
                 if [ "x$flag_gui_editor" = "xy" ]; then
@@ -1239,10 +1359,28 @@ function delete_note {
     fi
 }
 
+function is_default_tag {
+    local t="$(trim "$1")"
+    if [ "x$t" = "x$def_tag" ]; then
+        printf '%s' 'true'
+    else
+        printf '%s' 'false'
+    fi
+}
+
+function is_default_group {
+    local g="$(trim "$1")"
+    if [ "x$g" = "x$def_group" ]; then
+        printf '%s' 'true'
+    else
+        printf '%s' 'false'
+    fi
+}
+
 function delete_tag {
     local tag="$(trim "$1")"
 
-    if [ -n "$tag" ] && $(tag_exists "$tag"); then
+    if [ -n "$tag" ] && $(tag_exists "$tag") && ! $(is_default_tag "$tag"); then
         local tf="$(get_tag_loc "$tag")"
         local tnf="$tf/notes.lnk"
         for nid in $(< "$tnf"); do
@@ -1276,7 +1414,7 @@ function get_subgroups {
 function delete_group {
     local fqgn="$(trim "$1")"
 
-    if [ -n "$fqgn" ] && $(group_exists "$fqgn"); then
+    if [ -n "$fqgn" ] && $(group_exists "$fqgn") && ! $(is_default_group "$fqgn"); then
         local sgrps="$(get_subgroups "$fqgn")"
 
         for cg in ${sgrps//,/ } $fqgn; do
@@ -1535,6 +1673,20 @@ function list_archive {
     flag_list_find="$v_old"
 }
 
+function list_dbs {
+    local c=0
+    build_header "S.No." "DB Key" "Location"
+    while IFS= read -r line; do
+        line="${line/#db_loc=/__DEFAULT__=}"
+        line="${line#dbl_key_}"
+        local dbk="${line%%=*}"
+        local dbv="${line#*=}"
+        build_row $((++c)) "$dbk" "$dbv"
+    done < <(sed -n -e 's/^\s\+//' -e '/^#/d' -e 's/\s\+$//' -e 's/\s\+=/=/' \
+        -e 's/=\s\+/=/' -e '/^=\?$/d' -e '/^db_loc=/p' -e '/^dbl_key_.*=/p' \
+        "$config_file")
+}
+
 function _get_max {
     local max='-1'
 
@@ -1707,15 +1859,12 @@ function _parse_args_new {
 function _parse_args_list {
     local n1="$#"
     local eflag=0
+    local ldb=0
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in
-            "--stdout")
-                flag_no_pager="y"
-                shift
-                ;;
-            "--no-pretty")
-                flag_no_pretty="y"
+            "dbs")
+                ldb=1
                 shift
                 ;;
             *)
@@ -1723,7 +1872,11 @@ function _parse_args_list {
                 ;;
         esac
     done
-    push_op "list"
+    if [[ $ldb -eq 1 ]]; then
+        push_op "list_dbs"
+    else
+        push_op "list"
+    fi
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -1894,11 +2047,23 @@ function _parse_args_open {
     local eflag=0
     local nid=""
     local nflag=0
+    local with_arg=""
+    local wflag=0
     while [[ $# -ne 0 && $eflag -eq 0 ]]; do
         local sarg1="$1"
         case "$sarg1" in 
             "--edit")
                 flag_open_edit="y"
+                shift
+                ;;
+            "--with")
+                shift
+                if [[ $# -eq 0 ]]; then
+                    log_error "Missing argument for '--with', Check help for details."
+                    exit $ERR_ARGS
+                fi
+                with_arg="$1"
+                wflag=1
                 shift
                 ;;
             *)
@@ -1916,8 +2081,14 @@ function _parse_args_open {
         log_error "Missing note id."
         exit $ERR_ARGS
     fi
-    push_op "open"
-    push_op_args "$nid"
+    if [[ $wflag  -eq 1 ]]; then
+        push_op "open_cmd"
+        push_op_args "$nid"
+        push_op_args "$with_arg"
+    else
+        push_op "open"
+        push_op_args "$nid"
+    fi
     local n2="$#"
     shift_n="$((n1-n2))"
 }
@@ -2198,6 +2369,12 @@ function parse_args {
             "--inc-arch")
                 flag_show_archived="y"
                 ;;
+            "--no-header")
+                flag_no_header="y"
+                ;;
+            "-z"|"-0")
+                flag_null_sep="y"
+                ;;
             "--delim")
                 store_kv_pair "list_delim=$1"
                 shift 
@@ -2205,6 +2382,14 @@ function parse_args {
             "--format")
                 store_kv_pair "list_format=$1"
                 shift 
+                ;;
+            "--sort-as")
+                if [[ $# -eq 0 ]]; then
+                    log_error "Missing '--sort-as' value. Check help for details."
+                    exit $ERR_ARGS
+                fi
+                store_kv_pair "list_sort_as=$1"
+                shift
                 ;;
             "-C"|"--config")
                 _parse_args_config "$@"
@@ -2324,6 +2509,16 @@ function do_actions {
                 pop_op_args
                 open_note "$v_pop_op_args"
                 ;;
+            "open_cmd")
+                local v_pop_op_args=""
+                local nid=""
+                local with_cmd=""
+                pop_op_args
+                nid="$v_pop_op_args"
+                pop_op_args
+                with_cmd="$v_pop_op_args"
+                open_note "$nid" "w" "$with_cmd"
+                ;;
             "find_t")
                 local v_pop_op_args=""
                 pop_op_args
@@ -2409,6 +2604,9 @@ function do_actions {
                 ;;
             "list_arch")
                 list_archive
+                ;;
+            "list_dbs")
+                list_dbs
                 ;;
             *)
                 log_error "No such action ('$v_pop_op') defined."

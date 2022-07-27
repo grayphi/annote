@@ -1,5 +1,11 @@
 " load global configuration
-source /etc/vimrc
+if !empty(expand(glob("/etc/vimrc")))
+        source /etc/vimrc
+else
+        if !empty(expand(glob("/etc/vim/vimrc")))
+                source /etc/vim/vimrc
+        endif
+endif
 
 " highlighting comments for annote notes
 " comments defination: <start>@<number|range>!<space><string>
