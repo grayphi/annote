@@ -20,10 +20,15 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	--strict			Use strict comparisions, exact matches. Effects find action.
 	--gui				Use GUI Editor when editing note. Effects new, and modify actions.
 	--no-pretty			Do not prettify output.
+	--no-header			Do not display header in the output.
+	-z|-0				Seperate record(s) by NULL character, instead of NEWLINE(default).
 	--stdout			Do not use pager, just put everything on stdout.
 	--inc-arch			Include archived notes, default is to exclude. Effects list and find actions.
 	--delim [delimiter]		Use delimiter to delimit the list output fields.
 	--format [format]		Create custom note listing format with <SNO>,<NID>,<TITLE>,<TAGS>,<GROUP>,<DELIM>.
+	--sort-as [sf]			Use sort flag (sf) to sort the notes listing. sf can be: 'L|l', 'O|o', 'F|f',
+	         			'M|m'. As Latest on the top, Oldest on the top, random as they're Found(default),
+	         			last Modified on the top.
 	-C|--config			Manages config, if specified, then atleast one option has to be supplied.
 	   -i|--import [file]		Import config from file.
 	   -x|--export [file]		Export config to file.
@@ -79,7 +84,6 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	--archive [nid]			Archive note nid(id).
 	--unarchive [nid]		Unarchive note nid(id).
 	--list-archive			List archived notes.
-
 
 
 
