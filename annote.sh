@@ -787,32 +787,38 @@ function make_header {
     fi
 
     local fmt="${list_fmt//<DELIM>/$list_delim}"
+    local _fmt="$fmt"
 
-    #FIXME: infinite loop
-    while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
+    while [[ $_fmt =~ (\<[a-zA-Z]+\>) ]]; do
        (( ++nc ))
         case "${BASH_REMATCH[1]}" in
             \<SNO\>)
                 sno="$(_list_prettify_fg "$nc" "$sno" "y")"
                 fmt="${fmt//<SNO>/$sno}"
+                _fmt="${_fmt//<SNO>/}"
                 ;;
             \<NID\>)
                 nid="$(_list_prettify_fg "$nc" "$nid" "y")"
                 fmt="${fmt//<NID>/$nid}"
+                _fmt="${_fmt//<NID>/}"
                 ;;
             \<GROUP\>)
                 ngrp="$(_list_prettify_fg "$nc" "$ngrp" "y")"
                 fmt="${fmt//<GROUP>/$ngrp}"
+                _fmt="${_fmt//<GROUP>/}"
                 ;;
             \<TAGS\>)
                 ntags="$(_list_prettify_fg "$nc" "$ntags" "y")"
                 fmt="${fmt//<TAGS>/$ntags}"
+                _fmt="${_fmt//<TAGS>/}"
                 ;;
             \<TITLE\>)
                 ntitle="$(_list_prettify_fg "$nc" "$ntitle" "y")"
                 fmt="${fmt//<TITLE>/$ntitle}"
+                _fmt="${_fmt//<TITLE>/}"
                 ;;
             *)
+                _fmt="${_fmt//${BASH_REMATCH[1]}/}"
                 (( --nc ))
                 ;;
         esac
@@ -846,31 +852,38 @@ function _list_note {
     fi
 
     local fmt="${list_fmt//<DELIM>/$list_delim}"
-    #FIXME: infinite loop
-    while [[ $fmt =~ (\<[a-zA-Z]+\>) ]]; do
+    local _fmt="$fmt"
+
+    while [[ $_fmt =~ (\<[a-zA-Z]+\>) ]]; do
         (( ++nc ))
         case "${BASH_REMATCH[1]}" in
             \<SNO\>)
                 sno="$(_list_prettify_fg "$nc" "$sno" "y")"
                 fmt="${fmt//<SNO>/$sno}"
+                _fmt="${_fmt//<SNO>/}"
                 ;;
             \<NID\>)
                 nid="$(_list_prettify_fg "$nc" "$nid")"
                 fmt="${fmt//<NID>/$nid}"
+                _fmt="${_fmt//<NID>/}"
                 ;;
             \<GROUP\>)
                 ngrp="$(_list_prettify_fg "$nc" "$ngrp")"
                 fmt="${fmt//<GROUP>/$ngrp}"
+                _fmt="${_fmt//<GROUP>/}"
                 ;;
             \<TAGS\>)
                 ntags="$(_list_prettify_fg "$nc" "$ntags")"
                 fmt="${fmt//<TAGS>/$ntags}"
+                _fmt="${_fmt//<TAGS>/}"
                 ;;
             \<TITLE\>)
                 ntitle="$(_list_prettify_fg "$nc" "$ntitle")"
                 fmt="${fmt//<TITLE>/$ntitle}"
+                _fmt="${_fmt//<TITLE>/}"
                 ;;
             *)
+                _fmt="${_fmt//${BASH_REMATCH[1]}/}"
                 (( --nc ))
                 ;;
         esac
