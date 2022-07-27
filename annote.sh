@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.4'
+__VERSION__='2.5'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -43,6 +43,10 @@ editor_gui="gedit"
 list_delim="  "
 list_fmt="<SNO><DELIM><NID><DELIM><TITLE>"
 archived="ARCHIVED"
+list_sort_type="F"                          # 'L|l' --> latest on top,
+                                            # 'O|o' --> oldest on top,
+                                            # 'M|m' --> recent modified on top
+                                            # 'F|f' --> display as they're found
 
 declare -A mutex_ops=()
 declare -A mutex_ops_args=()
@@ -143,8 +147,7 @@ function as_underline {
 }
 
 function log_plain {
-    #FIXME: need to avoid putting data into format field
-    printf "$*\n" ''
+    printf '%b\n' "$*"
 }
 
 function log {
@@ -230,6 +233,9 @@ function help {
     log_plain "${idnt_l1}$(as_bold "--inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
     log_plain "${idnt_l1}$(as_bold "--delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
     log_plain "${idnt_l1}$(as_bold "--format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
+    log_plain "${idnt_l1}$(as_bold "--sort-as") [$(as_bold "$(as_light_green "sf")")]${fsep_3}Use sort flag ($(as_bold "$(as_light_green "sf")")) to sort the notes listing. $(as_bold "$(as_light_green "sf")") can be: '$(as_dim 'L')|$(as_dim 'l')', '$(as_dim 'O')|$(as_dim 'o')', '$(as_dim 'F')|$(as_dim 'f')',"
+    log_plain "${idnt_nl_prefx}'$(as_dim 'M')|$(as_dim 'm')'. As $(as_underline "$(as_dim 'L')")atest on the top, $(as_underline "$(as_dim 'O')")ldest on the top, random as they're $(as_underline "$(as_dim 'F')")ound(default),"
+    log_plain "${idnt_nl_prefx}last $(as_underline "$(as_dim 'M')")odified on the top."
 
     log_plain "${idnt_l1}$(as_bold "-C")|$(as_bold "--config")${fsep_3}Manages config, if specified, then atleast one option has to be supplied."
     log_plain "${idnt_sc1}$(as_bold "-i")|$(as_bold "--import") [$(as_bold "$(as_light_green "file")")]${fsep_2}Import config from $(as_bold "$(as_light_green "file")")."
@@ -406,6 +412,9 @@ function _set_key {
             ;;
         "list_format")
             list_fmt="$value"
+            ;;
+        "list_sort_as")
+            set_sort_as "$value"
             ;;
         *)
             log_warn "Ignored unknown key: '$key', check config."
@@ -875,6 +884,49 @@ function get_all_notes {
     printf '%s' "${n_l%,}"
 }
 
+function set_sort_as {
+    local sf="$(trim "$1")"
+    case "$sf" in
+        [Ll])
+            list_sort_type='L'
+            ;;
+        [Mm])
+            list_sort_type='M'
+            ;;
+        [Oo])
+            list_sort_type='O'
+            ;;
+        [Ff])
+            list_sort_type='F'
+            ;;
+        *)
+            log_warn "Ignoring unknown value ('$sf') for list sorting, check help for details."
+            ;;
+    esac
+}
+
+function sort_notes {
+    local nids="$1"
+
+    case "$list_sort_type" in
+        [Oo])
+            nids="$(sort <(printf '%b' "${nids//,/\\n}") | tr '\n' ',')"
+            ;;
+        [Ll])
+            nids="$(sort -r <(printf '%b' "${nids//,/\\n}") | tr '\n' ',')"
+            ;;
+        [mM])
+            nids="$(for n in ${nids//,/ }; do
+                local lm="$(get_metadata "$n" 'Modified On')"
+                lm="$(date --date="$lm" "+%s")"
+                printf '%s %s\0' "$n $lm"
+            done | sort -z -n -r -k2,2 | cut -z -s -d' ' -f1 | tr '\0' ',')"
+            ;;
+    esac
+
+    printf '%s' "${nids%,}"
+}
+
 function _list_notes {
     local nids="$1"
     local c=0
@@ -884,7 +936,9 @@ function _list_notes {
     if [ -z "$nids" ]; then
         nids="$(get_all_notes)"
     fi
-    #FIXME: sorting 
+
+    nids="$(sort_notes "$nids")"
+
     for n in ${nids//,/ }; do
         if [[ "x$flag_show_archived" = "x" ]] && $(is_archived "$n"); then
             continue;
@@ -2297,6 +2351,14 @@ function parse_args {
             "--format")
                 store_kv_pair "list_format=$1"
                 shift 
+                ;;
+            "--sort-as")
+                if [[ $# -eq 0 ]]; then
+                    log_error "Missing '--sort-as' value. Check help for details."
+                    exit $ERR_ARGS
+                fi
+                store_kv_pair "list_sort_as=$1"
+                shift
                 ;;
             "-C"|"--config")
                 _parse_args_config "$@"
