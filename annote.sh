@@ -1359,10 +1359,28 @@ function delete_note {
     fi
 }
 
+function is_default_tag {
+    local t="$(trim "$1")"
+    if [ "x$t" = "x$def_tag" ]; then
+        printf '%s' 'true'
+    else
+        printf '%s' 'false'
+    fi
+}
+
+function is_default_group {
+    local g="$(trim "$1")"
+    if [ "x$g" = "x$def_group" ]; then
+        printf '%s' 'true'
+    else
+        printf '%s' 'false'
+    fi
+}
+
 function delete_tag {
     local tag="$(trim "$1")"
 
-    if [ -n "$tag" ] && $(tag_exists "$tag"); then
+    if [ -n "$tag" ] && $(tag_exists "$tag") && ! $(is_default_tag "$tag"); then
         local tf="$(get_tag_loc "$tag")"
         local tnf="$tf/notes.lnk"
         for nid in $(< "$tnf"); do
@@ -1396,7 +1414,7 @@ function get_subgroups {
 function delete_group {
     local fqgn="$(trim "$1")"
 
-    if [ -n "$fqgn" ] && $(group_exists "$fqgn"); then
+    if [ -n "$fqgn" ] && $(group_exists "$fqgn") && ! $(is_default_group "$fqgn"); then
         local sgrps="$(get_subgroups "$fqgn")"
 
         for cg in ${sgrps//,/ } $fqgn; do
