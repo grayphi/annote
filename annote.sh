@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.5'
+__VERSION__='2.5.1'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -595,7 +595,7 @@ function _new_note {
             printf '%s\n' "$nid" >> "$tl/notes.lnk"
         fi
     done < <(printf '%s' "$tags,")
-    printf '%s\n' "Modified On: $(date)" >> "$nloc/$nid.metadata"
+    printf '%s\n' "Modified On: $(date +'%A %d %B %Y %r %Z')" >> "$nloc/$nid.metadata"
     printf '%s' "$nid"
 }
 
@@ -737,7 +737,7 @@ function add_note {
             fi
             ;;
     esac
-    update_metadata "$nid" "Modified On" "$(date)" 
+    update_metadata "$nid" "Modified On" "$(date +'%A %d %B %Y %r %Z')"
 }
 
 function _list_prettify_fg {
@@ -1204,7 +1204,7 @@ function modify_note {
                 fi
                 ;;
         esac
-        update_metadata "$nid" "Modified On" "$(date)"
+        update_metadata "$nid" "Modified On" "$(date +'%A %d %B %Y %r %Z')"
     fi
 }
 
