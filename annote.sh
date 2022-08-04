@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.5'
+__VERSION__='2.5.3'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -572,7 +572,7 @@ function _create_note {
     touch "$nloc/$nid.group"
     touch "$nloc/$nid.tags"
     touch "$nloc/$nid.metadata"
-    printf '%s\n' "Created On: $(date --date="@${nid#n}")" > "$nloc/$nid.metadata"
+    printf '%s\n' "Created On: $(date --date="@${nid#n}" '+%A %d %B %Y %r %Z')" > "$nloc/$nid.metadata"
     printf '%s' "$nid"
 }
 
@@ -595,7 +595,7 @@ function _new_note {
             printf '%s\n' "$nid" >> "$tl/notes.lnk"
         fi
     done < <(printf '%s' "$tags,")
-    printf '%s\n' "Modified On: $(date)" >> "$nloc/$nid.metadata"
+    printf '%s\n' "Modified On: $(date '+%A %d %B %Y %r %Z')" >> "$nloc/$nid.metadata"
     printf '%s' "$nid"
 }
 
@@ -676,7 +676,7 @@ function get_metadata {
     local value=""
     if $(note_exists "$nid"); then
         local mfile="$notes_loc/$nid/$nid.metadata"
-        value="$(sed -n -e "s/^$key: //p" $mfile)"
+        value="$(sed -n -e "s/^$key: //p" "$mfile")"
     fi
     printf '%s' "$value"
 }
@@ -737,7 +737,7 @@ function add_note {
             fi
             ;;
     esac
-    update_metadata "$nid" "Modified On" "$(date)" 
+    update_metadata "$nid" "Modified On" "$(date '+%A %d %B %Y %r %Z')"
 }
 
 function _list_prettify_fg {
@@ -745,7 +745,7 @@ function _list_prettify_fg {
     local txt="$2"
     local bold="$3"
     if [ "x$flag_no_pretty" != "xy" ]; then
-        if [ $(( $c % 2 )) -eq 0 ]; then
+        if [ $(( c % 2 )) -eq 0 ]; then
             txt="$(as_cyan "$txt")"
         else
             txt="$(as_light_green_2 "$txt")"
@@ -761,7 +761,7 @@ function _list_prettify_bg {
     local c="$1"
     local txt="$2"
     if [ "x$flag_no_pretty" != "xy" ]; then
-        if [ $(( $c % 2 )) -eq 0 ]; then
+        if [ $(( c % 2 )) -eq 0 ]; then
             txt="$(on_light_black "$txt")"
         else
             txt="$(on_dark_black "$txt")"
@@ -1019,8 +1019,8 @@ function list_groups {
 
     if [ -z "$groups" ]; then
         while IFS= read -r line; do
-            line="${line#$gl/}"
-            $groups="$groups,${line////.}"
+            line="${line#"$gl"/}"
+            groups="$groups,${line////.}"
         done < <(find "$gl" -type f -name 'notes.lnk' -printf '%h\n')
         groups="${groups#,}"
     else
@@ -1069,7 +1069,7 @@ function list_tags {
 
     if [ -z "$tags" ]; then
         while IFS= read -r line; do
-            $tags="$tags,${line#$tags_loc/}"
+            tags="$tags,${line#"$tags_loc"/}"
         done < <(find "$tags_loc" -mindepth 1 -maxdepth 2 -type f \
             -name 'notes.lnk' -printf '%h\n')
         tags="${tags#,}"
@@ -1204,7 +1204,7 @@ function modify_note {
                 fi
                 ;;
         esac
-        update_metadata "$nid" "Modified On" "$(date)"
+        update_metadata "$nid" "Modified On" "$(date '+%A %d %B %Y %r %Z')"
     fi
 }
 
@@ -1403,7 +1403,7 @@ function get_subgroups {
         gl="${gl%/}"
 
         while IFS= read -r line; do
-            line="${line#$groups_loc/}"
+            line="${line#"$groups_loc"/}"
             sgrps="$sgrps,${line////.}"
         done < <(find "$gl" -mindepth 2 -type f -name 'notes.lnk' -printf '%h\n')
         sgrps="${sgrps#,}"
@@ -1467,7 +1467,7 @@ function find_groups {
 
     if [ -n "$gpat" ]; then
         while IFS= read -r line; do
-            line="${line#$groups_loc/}"
+            line="${line#"$groups_loc"/}"
             line="${line%/}"
             groups="$groups,${line////.}"
         done < <(find "$groups_loc" -mindepth 1 -type d \
@@ -1560,7 +1560,6 @@ function find_notes {
             shopt -q nocasematch || shopt -s nocasematch
             for n in ${notes//,/ }; do
                 local nt="$(get_note_tags "$n")"
-                local f=""
                 for t in ${find_with_tags//,/ }; do
                     if [[ ,$nt, =~ ,.*$t.*, ]]; then
                         tnotes="$tnotes,$n"
