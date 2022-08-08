@@ -24,6 +24,8 @@ Annotate Terminal based notes managing utility for GNU/Linux OS.
 	-z|-0				Seperate record(s) by NULL character, instead of NEWLINE(default).
 	--stdout			Do not use pager, just put everything on stdout.
 	--inc-arch			Include archived notes, default is to exclude. Effects list and find actions.
+	--tee				Redirect the captured stdin to stdout. Effects new, and modify actions, and only when
+	         			recording note's content through stdin.
 	--delim [delimiter]		Use delimiter to delimit the list output fields.
 	--format [format]		Create custom note listing format with <SNO>,<NID>,<TITLE>,<TAGS>,<GROUP>,<DELIM>.
 	--sort-as [sf]			Use sort flag (sf) to sort the notes listing. sf can be: 'L|l', 'O|o', 'F|f',
