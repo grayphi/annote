@@ -5,7 +5,7 @@
 ###############################################################################
 
 __NAME__='annote'
-__VERSION__='2.5.3'
+__VERSION__='2.5.4'
 
 # variables
 c_red="$(tput setaf 196)"
@@ -69,6 +69,7 @@ flag_list_find=""                           # 'y' --> to show list of notes not 
 flag_show_archived=""                       # 'y' --> include archived notes into list/find, blank to exclude
 flag_no_header=""                           # 'y' --> to remove header from output
 flag_null_sep=""                            # 'y' --> to seperate records by null, empty to seperate by newline
+flag_tee=""                                 # 'y' --> tee the captured stdin to the stdout
 flag_debug_mutex_ops="$DBG_MUTEX_OPS"       # 'y'|'yes' --> enable mutex multi opts execution, PS: supplying multi opts can creates confusion.
 
 ERR_CONFIG=1
@@ -231,6 +232,8 @@ function help {
     log_plain "${idnt_l1}$(as_bold "-z")|$(as_bold "-0")${fsep_4}Seperate record(s) by $(as_dim "NULL") character, instead of $(as_dim "NEWLINE")(default)."
     log_plain "${idnt_l1}$(as_bold "--stdout")${fsep_3}Do not use pager, just put everything on $(as_bold "stdout")."
     log_plain "${idnt_l1}$(as_bold "--inc-arch")${fsep_3}Include archived notes, default is to exclude. Effects $(as_bold "list") and $(as_bold "find") actions."
+    log_plain "${idnt_l1}$(as_bold "--tee")${fsep_4}Redirect the captured $(as_bold 'stdin') to $(as_bold 'stdout'). Effects $(as_bold 'new'), and $(as_bold 'modify') actions, and only when"
+    log_plain "${idnt_nl_prefx}recording note's content through $(as_bold 'stdin')."
     log_plain "${idnt_l1}$(as_bold "--delim") [$(as_bold "$(as_light_green "delimiter")")]${fsep_2}Use $(as_bold "$(as_light_green "delimiter")") to delimit the list output fields."
     log_plain "${idnt_l1}$(as_bold "--format") [$(as_bold "$(as_light_green "format")")]${fsep_2}Create custom $(as_underline "note listing") format with $(as_dim "$(as_underline "<SNO>")"),$(as_dim "$(as_underline "<NID>")"),$(as_dim "$(as_underline "<TITLE>")"),$(as_dim "$(as_underline "<TAGS>")"),$(as_dim "$(as_underline "<GROUP>")"),$(as_dim "$(as_underline "<DELIM>")")."
     log_plain "${idnt_l1}$(as_bold "--sort-as") [$(as_bold "$(as_light_green "sf")")]${fsep_3}Use sort flag ($(as_bold "$(as_light_green "sf")")) to sort the notes listing. $(as_bold "$(as_light_green "sf")") can be: '$(as_dim 'L')|$(as_dim 'l')', '$(as_dim 'O')|$(as_dim 'o')', '$(as_dim 'F')|$(as_dim 'f')',"
@@ -722,6 +725,7 @@ function add_note {
             if [ "x$note" = "x-" ]; then
                 while IFS= read -r line; do
                     printf '%s\n' "$line" >> "$nf"
+                    [ "x$flag_tee" = "xy" ] && printf '%s\n' "$line"
                 done
             else
                 if [ -n "$note" ] && [ -r "$note" ]; then
@@ -1189,6 +1193,7 @@ function modify_note {
                 if [ "x$note" = "x-" ]; then
                     while IFS= read -r line; do
                         printf '%s\n' "$line" >> "$nf"
+                        [ "x$flag_tee" = "xy" ] && printf '%s\n' "$line"
                     done
                 else
                     if [ -n "$note" ] && [ -r "$note" ]; then
@@ -2373,6 +2378,9 @@ function parse_args {
                 ;;
             "-z"|"-0")
                 flag_null_sep="y"
+                ;;
+            "--tee")
+                flag_tee="y"
                 ;;
             "--delim")
                 store_kv_pair "list_delim=$1"
