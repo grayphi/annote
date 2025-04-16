@@ -11,8 +11,8 @@ mkdir -p $INSTALL_LOC
 cp ./annote.sh $INSTALL_LOC/$INSTALL_NAME
 chmod +x $INSTALL_LOC/$INSTALL_NAME
 
-mkdir ~/.annote
-cp ./vimrc ~/.annote/vimrc
+mkdir ~/.config/annote
+cp ./vimrc ~/.config/annote/vimrc
 
 bash $INSTALL_LOC/$INSTALL_NAME -C --import ./annote.config
 

@@ -5,7 +5,7 @@ INSTALLED_BIN="$(which "$INSTALL_NAME" 2> /dev/null)"
 
 if [ -n "$INSTALLED_BIN" ]; then
     rm -f "$INSTALLED_BIN"
-    HOME_DIR="$(realpath ~)/.annote"
+    HOME_DIR="$(realpath ~)/.config/annote"
     CONF_FILE="$HOME_DIR/annote.config"
     VIMRC_FILE="$HOME_DIR/vimrc"
 
