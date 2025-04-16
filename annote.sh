@@ -27,10 +27,10 @@ s_underline="$(tput smul)"
 
 p_reset="$(tput sgr0)"
 
-config_file="$(realpath ~)/.annote/annote.config"
+config_file="$(realpath ~)/.config/annote/annote.config"
 u_conf_file=""
 declare -A kv_conf_var=()
-db_loc="$(realpath ~)/.annote/db"
+db_loc="$(realpath ~)/.config/annote/db"
 declare -A db_loc_var=()
 db_loc_key=""
 notes_loc="$db_loc/notes"
